@@ -6,7 +6,7 @@ def read_pcap_scapy(file_name):
 
     for i, packet in enumerate(packets[:10]):
         # Get the packet's size
-        packet_size = len(packet)
+        packet_size = packet.wirelen
         # Get the packet's time, which is relative to the start of the capture
         packet_time = packet.time
 
