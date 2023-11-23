@@ -5,9 +5,12 @@ import numpy as np
 
 
 def get_traffic_rate_signal(packets, interval=100):
+    if not packets:
+        raise ValueError("No packets provided.")
     packet_sizes = [packet.wirelen for packet in packets]
     timestamps = [packet.time for packet in packets]
-    start_time = timestamps[0]
+    start_time = min(timestamps)
+    end_time = max(timestamps)
     df = pd.DataFrame({
         'Size': packet_sizes,
         'Timestamp': timestamps
@@ -15,7 +18,11 @@ def get_traffic_rate_signal(packets, interval=100):
     df['Elapsed'] = (df['Timestamp'] - start_time) * 1e6
     df['Interval'] = (df['Elapsed'] // interval).astype(int)
     traffic_summary = df.groupby('Interval')['Size'].sum()
-    traffic_summary = traffic_summary.reset_index()
+    max_interval = int((end_time - start_time) * 1e6 // interval)
+    all_intervals = pd.DataFrame({'Interval': range(max_interval + 1)})
+    traffic_summary = all_intervals.merge(traffic_summary, on='Interval', how='left')
+    traffic_summary['Size'].fillna(0, inplace=True)
+
     return traffic_summary
 
 
@@ -30,10 +37,10 @@ def plot_traffic_rate(packets, interval=100):
     plt.show()
 
 
-def plot_average_traffic_rate(packets, interval=50, avg_window_size=1000):
-    traffic_summary = get_traffic_rate_signal(packets)
-    kernel = np.ones(avg_window_size) / avg_window_size
-    averaged_traffic = np.convolve(traffic_summary['Size'], kernel, mode='same')
+def plot_average_traffic_rate(packets, interval=50, avg_window_size=500):
+    traffic_summary = get_traffic_rate_signal(packets, interval=interval)
+    kernel = np.ones(avg_window_size // interval) / (avg_window_size // interval)
+    averaged_traffic = np.convolve(kernel, traffic_summary['Size'], mode='same')
     plt.figure(figsize=(14, 7))
     plt.plot(traffic_summary['Interval'] * interval, traffic_summary['Size'], linewidth=1,
              label='Original Traffic Rate')
@@ -62,5 +69,7 @@ def read_pcap_scapy(file_name):
 if __name__ == '__main__':
     # read_pcap_scapy('PcabFiles/test.pcap')
     packets = rdpcap('PcabFiles/test.pcap')
-    plot_traffic_rate(packets, interval=50)
-    plot_average_traffic_rate(packets, interval=50, avg_window_size=50 * 10)
+    interval = 100000
+    avg_window_size = 1000000
+    plot_traffic_rate(packets, interval=interval)
+    plot_average_traffic_rate(packets, interval=interval, avg_window_size=avg_window_size)
