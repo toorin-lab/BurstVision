@@ -130,13 +130,14 @@ class NetworkTraffic:
         update_progress(3)
         traffic_summary = all_intervals.merge(traffic_summary, on='Interval', how='left')
         traffic_summary['Size'].fillna(0, inplace=True)
+        traffic_summary['Rate'] = traffic_summary['Size'] / self.interval
         update_progress(4)
         return traffic_summary
 
     @progress_decorator(total_steps=1)
     def _get_traffic_avg_rate_signal(self, update_progress):
         kernel = np.ones(self.avg_window_size // self.interval) / (self.avg_window_size // self.interval)
-        averaged_traffic = np.convolve(kernel, self.traffic_rate_signal['Size'], mode='same')
+        averaged_traffic = np.convolve(kernel, self.traffic_rate_signal['Rate'], mode='same')
         update_progress(1)
         return averaged_traffic
 
@@ -144,11 +145,11 @@ class NetworkTraffic:
     def _get_bursts(self, update_progress):
         traffic_rate_signal = self.traffic_rate_signal
         avg_traffic_signal = self.avg_rate_signal
-        is_burst = traffic_rate_signal['Size'] > (self.min_burst_ratio * avg_traffic_signal)
+        is_burst = traffic_rate_signal['Rate'] > (self.min_burst_ratio * avg_traffic_signal)
         burst_traffic = self.traffic_rate_signal[is_burst]
         burst_avg = self.avg_rate_signal[is_burst]
         update_progress(1)
-        burst_ratio = np.where(burst_avg != 0, burst_traffic['Size'] / burst_avg, np.inf)
+        burst_ratio = np.where(burst_avg != 0, burst_traffic['Rate'] / burst_avg, np.inf)
         bursts = np.array(
             [Burst(time * self.interval, ratio) for time, ratio in zip(burst_traffic['Interval'], burst_ratio)])
         update_progress(2)
@@ -163,8 +164,8 @@ class PlotNetworkTraffic:
     def plot_traffic_rate(self, update_progress):
         traffic_summary = network_traffic.traffic_rate_signal
         plt.figure(figsize=(14, 7))
-        plt.plot(traffic_summary['Interval'] * self.network_traffic.interval, traffic_summary['Size'], linewidth=1)
-        plt.title('Sum of Bytes in Each n Microseconds Interval')
+        plt.plot(traffic_summary['Interval'] * self.network_traffic.interval, traffic_summary['Rate'], linewidth=1)
+        plt.title('Rate in Each n Microseconds Interval')
         plt.xlabel('Interval (n microseconds)')
         plt.ylabel('Sum of Bytes')
         plt.grid(True)
@@ -176,9 +177,9 @@ class PlotNetworkTraffic:
         traffic_summary = self.network_traffic.traffic_rate_signal
         kernel = np.ones(self.network_traffic.avg_window_size // self.network_traffic.interval) / (
                 self.network_traffic.avg_window_size // self.network_traffic.interval)
-        averaged_traffic = np.convolve(kernel, traffic_summary['Size'], mode='same')
+        averaged_traffic = np.convolve(kernel, traffic_summary['Rate'], mode='same')
         plt.figure(figsize=(14, 7))
-        plt.plot(traffic_summary['Interval'] * interval, traffic_summary['Size'], linewidth=1,
+        plt.plot(traffic_summary['Interval'] * interval, traffic_summary['Rate'], linewidth=1,
                  label='Original Traffic Rate')
         update_progress(1)
         plt.plot(traffic_summary['Interval'] * interval, averaged_traffic, linewidth=1, color='red',
@@ -196,7 +197,7 @@ class PlotNetworkTraffic:
         # Extract burst timestamps and sizes
         burst_timestamps = np.array([burst.timestamp for burst in self.network_traffic.bursts])
         burst_sizes = np.array(
-            [self.network_traffic.traffic_rate_signal['Size'][burst.timestamp // self.network_traffic.interval] for
+            [self.network_traffic.traffic_rate_signal['Rate'][burst.timestamp // self.network_traffic.interval] for
              burst in self.network_traffic.bursts])
 
         update_progress(1)
@@ -205,7 +206,7 @@ class PlotNetworkTraffic:
 
         # Plot traffic rate
         plt.plot(self.network_traffic.traffic_rate_signal['Interval'] * self.network_traffic.interval,
-                 self.network_traffic.traffic_rate_signal['Size'], label='Traffic Rate', alpha=0.7)
+                 self.network_traffic.traffic_rate_signal['Rate'], label='Traffic Rate', alpha=0.7)
         update_progress(2)
 
         # Plot average traffic rate
@@ -236,11 +237,11 @@ def read_pcap_scapy(file_name):
 
 if __name__ == '__main__':
     start_time = time.time()
-    interval = 100000
+    interval = 1000
     avg_window_size = 1000000
     network_traffic = NetworkTraffic(pcab_file_location='PcabFiles/traffic.pcapng', interval=interval,
                                      avg_window_size=avg_window_size, min_burst_ratio=5, start_from_packet=0,
-                                     end_at_packet=100000)
+                                     end_at_packet=10000)
     network_plot = PlotNetworkTraffic(network_traffic=network_traffic)
     network_plot.plot_traffic_and_bursts()
     end_time = time.time()
