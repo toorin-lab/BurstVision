@@ -130,7 +130,10 @@ class NetworkTraffic:
         update_progress(3)
         traffic_summary = all_intervals.merge(traffic_summary, on='Interval', how='left')
         traffic_summary['Size'].fillna(0, inplace=True)
-        traffic_summary['Rate'] = traffic_summary['Size'] / self.interval
+
+        # Convert rate from bytes/microsecond to bytes/second
+        traffic_summary['Rate'] = (traffic_summary['Size'] / self.interval) * 1e6  # Multiply by 1,000,000
+
         update_progress(4)
         return traffic_summary
 
@@ -218,8 +221,8 @@ class PlotNetworkTraffic:
         plt.scatter(burst_timestamps, burst_sizes, color='red', label='Bursts')
         update_progress(4)
 
-        plt.xlabel('Time Interval')
-        plt.ylabel('Traffic Size')
+        plt.xlabel('Time Interval (microseconds)')
+        plt.ylabel('Traffic Rate (Byte / second)')
         plt.title('Network Traffic Rate with Bursts')
         plt.legend()
         plt.grid(True)
