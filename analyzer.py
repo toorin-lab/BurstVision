@@ -96,15 +96,19 @@ class NetworkTraffic:
 
         packet_count = 0
         start_time = time.time()
+        progress = 0
         with PcapReader(self.pcab_file_location) as pcap_reader:
             for packet in pcap_reader:
                 if packet_count >= self.start_from_packet:
                     self.packets.append(packet)
                 packet_count += 1
                 processed_size += len(packet)
-                progress = (processed_size / total_file_size) * 100
+                new_progress = (processed_size / total_file_size) * 100
+                if new_progress - progress >= 1:
+                    progress = new_progress
+                    print(f"\rReading packets: {progress:.2f}% ({now_time - start_time:.2f}s)", end='', flush=True)
                 now_time = time.time()
-                print(f"\rReading packets: {progress:.2f}% ({now_time - start_time:.2f}s)", end='', flush=True)
+
         print()  # Move to the next line after completion
 
     @progress_decorator(total_steps=4)
@@ -244,7 +248,7 @@ if __name__ == '__main__':
     avg_window_size = 1000000
     network_traffic = NetworkTraffic(pcab_file_location='PcabFiles/traffic.pcapng', interval=interval,
                                      avg_window_size=avg_window_size, min_burst_ratio=5, start_from_packet=0,
-                                     end_at_packet=10000)
+                                     end_at_packet=100000)
     network_plot = PlotNetworkTraffic(network_traffic=network_traffic)
     network_plot.plot_traffic_and_bursts()
     end_time = time.time()
