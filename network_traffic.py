@@ -4,14 +4,18 @@ import pandas as pd
 import numpy as np
 
 
-
 class Burst:
-    def __init__(self, timestamp, burst_ratio):
+    def __init__(self, timestamp, burst_ratio, interval=None, burst_total_traffic=None, count_of_packets=0):
         self.timestamp = timestamp
         self.burst_ratio = burst_ratio
+        self.interval = interval
+        self.burst_total_traffic = burst_total_traffic
+        self.count_of_packets = count_of_packets
+        self.avg_traffic = 0
 
     def __repr__(self):
-        return f"Burst(timestamp={self.timestamp}, burst_ratio={self.burst_ratio:.2f})"
+        return f"Burst(timestamp={self.timestamp}, burst_ratio={self.burst_ratio:.2f}, interval={self.interval}, " \
+               f"burst_total_traffic={self.burst_total_traffic}, count_of_packets={self.count_of_packets}, avg_traffic={self.avg_traffic}))"
 
 
 class NetworkTraffic:
@@ -28,6 +32,7 @@ class NetworkTraffic:
         self.avg_rate_signal = self._get_traffic_avg_rate_signal()
         self.min_burst_ratio = min_burst_ratio
         self.bursts = self._get_bursts()
+        self.inter_burst_duration_signal = self._get_inter_burst_duration_signal()
 
     def _read_packets_based_on_count(self):
         if self.end_at_packet is None:
@@ -106,7 +111,7 @@ class NetworkTraffic:
 
         # Convert rate from bytes/microsecond to bytes/second
         traffic_summary['Rate'] = (traffic_summary['Size'] / self.interval) * 1e6  # Multiply by 1,000,000
-
+        traffic_summary['Count'] = df.groupby('Interval')['Size'].count()
         update_progress(4)
         return traffic_summary
 
@@ -117,16 +122,81 @@ class NetworkTraffic:
         update_progress(1)
         return averaged_traffic
 
-    @progress_decorator(total_steps=2)
-    def _get_bursts(self, update_progress):
+    def get_continuous_bursts(self, burst_points):
+        bursts = []
+        current_burst = None
+        sum_of_burt_ratio = 0
+        total_current_burst_count = 0
+        sum_of_timestamps = 0
+        prev_timestamp = 0
+        count_of_packets = 0
+        for i in range(len(burst_points)):
+            bursts_point = burst_points[i]
+            if current_burst is None:
+                current_burst = bursts_point
+                sum_of_burt_ratio = bursts_point.burst_ratio
+                sum_of_timestamps = bursts_point.timestamp
+                count_of_packets = bursts_point.count_of_packets
+                total_current_burst_count = 1
+
+                current_burst.count_of_packets = count_of_packets
+                current_burst.interval = total_current_burst_count * self.interval
+                current_burst.burst_total_traffic += bursts_point.burst_total_traffic
+
+            elif bursts_point.timestamp - prev_timestamp <= self.interval:
+                sum_of_timestamps += bursts_point.timestamp
+                sum_of_burt_ratio += bursts_point.burst_ratio
+                count_of_packets += bursts_point.count_of_packets
+                total_current_burst_count += 1
+                current_burst.burst_total_traffic += bursts_point.burst_total_traffic
+                current_burst.burst_ratio = sum_of_burt_ratio / total_current_burst_count
+                current_burst.timestamp = sum_of_timestamps / total_current_burst_count
+                current_burst.count_of_packets = count_of_packets
+                current_burst.interval = total_current_burst_count * self.interval
+            else:
+                current_burst.interval = total_current_burst_count * self.interval
+                bursts.append(current_burst)
+                ############################
+                current_burst = bursts_point
+                sum_of_timestamps = bursts_point.timestamp
+                sum_of_burt_ratio = bursts_point.burst_ratio
+                count_of_packets = bursts_point.count_of_packets
+                current_burst.interval = total_current_burst_count * self.interval
+                current_burst.count_of_packets = count_of_packets
+
+                total_current_burst_count = 1
+
+            current_burst.avg_traffic = current_burst.burst_total_traffic / count_of_packets
+            prev_timestamp = bursts_point.timestamp
+            if i == len(burst_points) - 1:
+                bursts.append(current_burst)
+                break
+
+        return bursts
+
+    def get_burst_points(self):
         traffic_rate_signal = self.traffic_rate_signal
         avg_traffic_signal = self.avg_rate_signal
         is_burst = traffic_rate_signal['Rate'] > (self.min_burst_ratio * avg_traffic_signal)
         burst_traffic = self.traffic_rate_signal[is_burst]
         burst_avg = self.avg_rate_signal[is_burst]
-        update_progress(1)
         burst_ratio = np.where(burst_avg != 0, burst_traffic['Rate'] / burst_avg, np.inf)
-        bursts = np.array(
-            [Burst(time * self.interval, ratio) for time, ratio in zip(burst_traffic['Interval'], burst_ratio)])
+        bursts_points = np.array(
+            [Burst(time * self.interval, ratio, burst_total_traffic=ratio * self.interval, count_of_packets=count) for time, ratio, count in
+             zip(burst_traffic['Interval'], burst_ratio, burst_traffic['Count'])])
+        return bursts_points
+
+    @progress_decorator(total_steps=2)
+    def _get_bursts(self, update_progress):
+        bursts_points = self.get_burst_points()
+        update_progress(1)
+        bursts = self.get_continuous_bursts(bursts_points)
         update_progress(2)
         return bursts
+
+    def _get_inter_burst_duration_signal(self):
+        inter_burst_duration = []
+        for i in range(len(self.bursts) - 1):
+            inter_burst_duration.append(self.bursts[i + 1].timestamp - self.bursts[i].timestamp + self.bursts[i].interval)
+        return inter_burst_duration
+

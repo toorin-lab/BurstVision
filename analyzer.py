@@ -4,13 +4,28 @@ from plot import PlotNetworkTraffic
 from network_traffic import NetworkTraffic
 
 if __name__ == '__main__':
+    ############################################
+    # initial signal configurations #
     start_time = time.time()
     interval = 1000
-    avg_window_size = 1000000
+    avg_window_size = 100000
     network_traffic = NetworkTraffic(pcab_file_location='PcabFiles/traffic.pcapng', interval=interval,
                                      avg_window_size=avg_window_size, min_burst_ratio=5, start_from_packet=0,
-                                     end_at_packet=100000)
+                                     end_at_packet=10000)
     network_plot = PlotNetworkTraffic(network_traffic_object=network_traffic)
+
+    ############################################
+    # plot signals #
     network_plot.plot_traffic_and_bursts()
     end_time = time.time()
     print(f"total execution time : {end_time - start_time}")
+
+    ############################################
+    # plot cdfs #
+
+    # network_plot.plot_bursts_interval_cdf()
+    # network_plot.plot_bursts_size_cdf()
+    # network_plot.plot_bursts_ratio_cdf()
+    network_plot.plot_bursts_count_cdf()
+    # network_plot.plot_bursts_avg_traffic_cdf()
+    # network_plot.plot_inter_burst_duration_signal_cdf()

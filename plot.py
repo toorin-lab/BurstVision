@@ -30,7 +30,8 @@ class PlotNetworkTraffic:
         plt.plot(traffic_summary['Interval'] * self.network_traffic.interval, traffic_summary['Rate'], linewidth=1,
                  label='Original Traffic Rate')
         update_progress(1)
-        plt.plot(traffic_summary['Interval'] * self.network_traffic.interval, averaged_traffic, linewidth=1, color='red',
+        plt.plot(traffic_summary['Interval'] * self.network_traffic.interval, averaged_traffic, linewidth=1,
+                 color='red',
                  label='Averaged Traffic Rate')
         plt.title('Traffic Rate and Its Moving Average')
         plt.xlabel('Interval (n microseconds)')
@@ -73,3 +74,41 @@ class PlotNetworkTraffic:
         plt.grid(True)
         plt.show()
         update_progress(5)
+
+    @staticmethod
+    def plot_cdf(function_outputs, function_name: str, function_atr: str):
+        sorted_outputs = np.sort(function_outputs)
+        cumulative_probabilities = np.arange(1, len(sorted_outputs) + 1) / len(sorted_outputs)
+        plt.figure(figsize=(10, 6))
+        plt.step(sorted_outputs, cumulative_probabilities, where='post', label=f'CDF of {function_name} {function_atr}')
+        plt.title(f'CDF of {function_name} {function_atr}')
+        plt.xlabel(f'{function_atr}s')
+        plt.ylabel('CDF')
+        plt.grid(True)
+        plt.legend()
+        plt.show()
+
+    def plot_bursts_interval_cdf(self):
+        burst_timestamps = [burst.timestamp for burst in self.network_traffic.bursts]
+        self.plot_cdf(burst_timestamps, 'Burst', 'Timestamp')
+
+    def plot_bursts_size_cdf(self):
+        burst_sizes = [burst.burst_total_traffic for burst in self.network_traffic.bursts]
+        self.plot_cdf(burst_sizes, 'Burst', 'Size')
+
+    def plot_bursts_ratio_cdf(self):
+        burst_ratios = [burst.burst_ratio for burst in self.network_traffic.bursts]
+        self.plot_cdf(burst_ratios, 'Burst', 'Ratio')
+
+    def plot_bursts_count_cdf(self):
+        burst_count = [burst.count_of_packets for burst in self.network_traffic.bursts]
+        self.plot_cdf(burst_count, 'Burst', 'Count')
+
+    def plot_bursts_avg_traffic_cdf(self):
+        burst_avg_traffic = [burst.avg_traffic for burst in self.network_traffic.bursts]
+        self.plot_cdf(burst_avg_traffic, 'Burst', 'Avg Traffic')
+
+    def plot_inter_burst_duration_signal_cdf(self):
+        inter_burst_duration_signal = self.network_traffic.inter_burst_duration_signal
+        self.plot_cdf(inter_burst_duration_signal, 'Burst', 'Inter Burst Duration')
+
