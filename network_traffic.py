@@ -169,7 +169,6 @@ class NetworkTraffic:
                 current_burst.bursts_total_traffic += bursts_point.burst_total_traffic
 
                 total_current_burst_count = 1
-
             current_burst.avg_traffic = current_burst.bursts_total_traffic / current_burst.count_of_packets
             prev_timestamp = bursts_point.timestamp
             if i == len(burst_points) - 1:

@@ -23,8 +23,8 @@ if __name__ == '__main__':
     ############################################
     # plot cdfs #
 
-    network_plot.plot_bursts_duration_cdf()
-    # network_plot.bursts_traffic_volume()
+    #network_plot.plot_bursts_duration_cdf()
+    network_plot.bursts_traffic_volume()
     # network_plot.plot_bursts_ratio_cdf()
     # network_plot.plot_bursts_packet_count_cdf()
     # network_plot.plot_bursts_avg_packet_size_cdf()

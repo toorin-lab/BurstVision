@@ -94,7 +94,7 @@ class PlotNetworkTraffic:
 
     def bursts_traffic_volume(self):
         burst_sizes = [burst.burst_total_traffic for burst in self.network_traffic.bursts]
-        self.plot_cdf(burst_sizes, 'Burst', 'Size (Byte)')
+        self.plot_cdf(burst_sizes, 'Burst', 'traffic volume (Byte)')
 
     def plot_bursts_ratio_cdf(self):
         burst_ratios = [burst.burst_ratio for burst in self.network_traffic.bursts]
@@ -102,11 +102,11 @@ class PlotNetworkTraffic:
 
     def plot_bursts_packet_count_cdf(self):
         burst_count = [burst.count_of_packets for burst in self.network_traffic.bursts]
-        self.plot_cdf(burst_count, 'Burst', 'Count')
+        self.plot_cdf(burst_count, 'Burst', 'packet count')
 
     def plot_bursts_avg_packet_size_cdf(self):
         burst_avg_traffic = [burst.avg_traffic for burst in self.network_traffic.bursts]
-        self.plot_cdf(burst_avg_traffic, 'Burst', 'Avg Traffic (Byte)')
+        self.plot_cdf(burst_avg_traffic, 'Burst', 'Avg packet Traffic (Byte)')
 
     def plot_inter_burst_duration_signal_cdf(self):
         inter_burst_duration_signal = self.network_traffic.inter_burst_duration_signal
