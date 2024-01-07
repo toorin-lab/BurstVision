@@ -82,19 +82,19 @@ class PlotNetworkTraffic:
         plt.figure(figsize=(10, 6))
         plt.step(sorted_outputs, cumulative_probabilities, where='post', label=f'CDF of {function_name} {function_atr}')
         plt.title(f'CDF of {function_name} {function_atr}')
-        plt.xlabel(f'{function_atr}s')
+        plt.xlabel(f'{function_atr}')
         plt.ylabel('CDF')
         plt.grid(True)
         plt.legend()
         plt.show()
 
-    def plot_bursts_interval_cdf(self):
-        burst_timestamps = [burst.timestamp for burst in self.network_traffic.bursts]
-        self.plot_cdf(burst_timestamps, 'Burst', 'Timestamp')
+    def plot_bursts_duration_cdf(self):
+        burst_timestamps = [burst.interval for burst in self.network_traffic.bursts]
+        self.plot_cdf(burst_timestamps, 'Burst', 'Duration')
 
-    def plot_bursts_size_cdf(self):
+    def bursts_traffic_volume(self):
         burst_sizes = [burst.burst_total_traffic for burst in self.network_traffic.bursts]
-        self.plot_cdf(burst_sizes, 'Burst', 'Size')
+        self.plot_cdf(burst_sizes, 'Burst', 'Size (Byte)')
 
     def plot_bursts_ratio_cdf(self):
         burst_ratios = [burst.burst_ratio for burst in self.network_traffic.bursts]
