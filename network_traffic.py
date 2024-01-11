@@ -41,6 +41,7 @@ class NetworkTraffic:
             return
         packet_count = 0
         progress_start_time = time.time()
+        prev_progress = None
         with PcapReader(self.pcab_file_location) as pcap_reader:
             for packet in pcap_reader:
                 if packet_count >= self.start_from_packet:
@@ -48,9 +49,15 @@ class NetworkTraffic:
                         break
 
                     self.packets.append(packet)
-                self._update_progress(packet_count,
-                                      self.end_at_packet,
-                                      progress_start_time=progress_start_time)
+                progress, progress_end_time = self._update_progress(packet_count,
+                                                                    self.end_at_packet,
+                                                                    progress_start_time=progress_start_time)
+                if prev_progress is None:
+                    prev_progress = progress
+                if progress - prev_progress > 10:
+                    print(f"\rReading packets: {round(progress)}% ({progress_end_time - progress_start_time:.2f}s)", end='',
+                          flush=True)
+                    prev_progress = progress
 
                 packet_count += 1
 
@@ -60,8 +67,7 @@ class NetworkTraffic:
         if total_count:
             progress = (current_count / total_count) * 100
             progress_end_time = time.time()
-            print(f"\rReading packets: {progress:.2f}% ({progress_end_time - progress_start_time:.2f}s)", end='',
-                  flush=True)
+            return progress, progress_end_time
         else:
             print("\rReading packets...", end='', flush=True)
 
