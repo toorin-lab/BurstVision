@@ -93,7 +93,7 @@ class PlotNetworkTraffic:
         self.plot_cdf(burst_timestamps, 'Burst', 'Duration (microseconds)', 'Duration of microbursts (CDF)')
 
     def bursts_traffic_volume(self):
-        burst_sizes = [burst.burst_total_traffic for burst in self.network_traffic.bursts]
+        burst_sizes = [burst.bursts_total_traffic for burst in self.network_traffic.bursts]
         self.plot_cdf(burst_sizes, 'Burst', 'Traffic volume (bytes)', title="Traffic volume of microbursts (CDF)")
 
     def plot_bursts_ratio_cdf(self):
