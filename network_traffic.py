@@ -20,13 +20,10 @@ class Burst:
 
 
 class NetworkTraffic:
-    def __init__(self, pcab_file_location, interval, avg_window_size, min_burst_ratio, start_from_packet=0,
-                 end_at_packet=None):
+    def __init__(self, pcab_file_location, interval, avg_window_size, min_burst_ratio):
         self.pcab_file_location = pcab_file_location
-        self.start_from_packet = start_from_packet
-        self.end_at_packet = end_at_packet
         self.packets = []
-        self._read_packets_based_on_count()
+        self._read_packets_with_progress()
         self.interval = interval
         self.avg_window_size = avg_window_size
         self.traffic_rate_signal = self._get_traffic_rate_signal()
@@ -34,34 +31,6 @@ class NetworkTraffic:
         self.min_burst_ratio = min_burst_ratio
         self.bursts = self._get_bursts()
         self.inter_burst_duration_signal = self._get_inter_burst_duration_signal()
-
-    def _read_packets_based_on_count(self):
-        if self.end_at_packet is None:
-            self._read_packets_with_progress()
-            return
-        packet_count = 0
-        progress_start_time = time.time()
-        prev_progress = None
-        with PcapReader(self.pcab_file_location) as pcap_reader:
-            for packet in pcap_reader:
-                if packet_count >= self.start_from_packet:
-                    if self.end_at_packet is not None and packet_count > self.end_at_packet:
-                        break
-
-                    self.packets.append(packet)
-                progress, progress_end_time = self._update_progress(packet_count,
-                                                                    self.end_at_packet,
-                                                                    progress_start_time=progress_start_time)
-                if prev_progress is None:
-                    prev_progress = progress
-                if progress - prev_progress > 10:
-                    print(f"\rReading packets: {round(progress)}% ({progress_end_time - progress_start_time:.2f}s)", end='',
-                          flush=True)
-                    prev_progress = progress
-
-                packet_count += 1
-
-        print()  # Ensuring new line after progress bar
 
     def _update_progress(self, current_count, total_count, progress_start_time):
         if total_count:
@@ -80,8 +49,7 @@ class NetworkTraffic:
         progress = 0
         with PcapReader(self.pcab_file_location) as pcap_reader:
             for packet in pcap_reader:
-                if packet_count >= self.start_from_packet:
-                    self.packets.append(packet)
+                self.packets.append(packet)
                 packet_count += 1
                 processed_size += len(packet)
                 new_progress = (processed_size / total_file_size) * 100
