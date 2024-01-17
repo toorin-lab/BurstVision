@@ -2,6 +2,39 @@ from scapy.all import *
 from utils import progress_decorator
 import pandas as pd
 import numpy as np
+from scapy.layers.inet import IP, TCP, UDP
+
+
+class FiveTuple:
+    def __init__(self, src_ip, dst_ip, src_port, dst_port, proto, timestamp):
+        self.src_ip = src_ip
+        self.dst_ip = dst_ip
+        self.src_port = src_port
+        self.dst_port = dst_port
+        self.proto = proto
+        self.timestamp = timestamp
+
+    def get_five_tuple(self):
+        return self.src_ip, self.dst_ip, self.src_port, self.dst_port, self.proto
+
+    @staticmethod
+    def get_five_tuples_in_time_range(five_tuples, start_time, end_time):
+        valid_five_tuples = [event for event in five_tuples if start_time <= event.timestamp <= end_time]
+        return valid_five_tuples
+
+
+class FlowEvent:
+    def __init__(self, five_tuples):
+        self.flows = []
+        for five_tuple in five_tuples:
+            src_ip, dst_ip, src_port, dst_port, proto = five_tuple.get_five_tuple()
+            if src_port is None or dst_port is None:
+                return
+            flow = (src_ip, dst_ip, src_port, dst_port, proto)
+            reverse_flow = (dst_ip, src_ip, dst_port, src_port, proto)
+            flows = [five_tuple.get_five_tuple() for five_tuple in self.flows]
+            if flow not in flows and reverse_flow not in flows:
+                self.flows.append(five_tuple)
 
 
 class Burst:
@@ -13,6 +46,13 @@ class Burst:
         self.bursts_total_traffic = 0
         self.count_of_packets = count_of_packets
         self.avg_traffic = 0
+        self.number_of_flows = 0
+
+    def is_part_of_burst(self, packet):
+        packet_time = packet.time
+        burst_start_time = self.timestamp
+        burst_end_time = burst_start_time + self.interval
+        return burst_start_time <= packet_time <= burst_end_time
 
     def __repr__(self):
         return f"Burst(timestamp={self.timestamp}, burst_ratio={self.burst_ratio:.2f}, interval={self.interval}, " \
@@ -29,8 +69,28 @@ class NetworkTraffic:
         self.traffic_rate_signal = self._get_traffic_rate_signal()
         self.avg_rate_signal = self._get_traffic_avg_rate_signal()
         self.min_burst_ratio = min_burst_ratio
+        self.five_tuples = self.extract_5_tuple()
+        self.flow_event = FlowEvent(self.five_tuples)
         self.bursts = self._get_bursts()
         self.inter_burst_duration_signal = self._get_inter_burst_duration_signal()
+
+    def extract_5_tuple(self):
+        tuples = []
+        for packet in self.packets:
+            if IP in packet:
+                src_ip = packet[IP].src
+                dst_ip = packet[IP].dst
+                proto = packet[IP].proto
+                if TCP in packet:
+                    src_port = packet[TCP].sport
+                    dst_port = packet[TCP].dport
+                elif UDP in packet:
+                    src_port = packet[UDP].sport
+                    dst_port = packet[UDP].dport
+                else:
+                    continue
+                tuples.append(FiveTuple(src_ip, dst_ip, src_port, dst_port, proto, (packet.time - self.start_time) * 1e6))
+        return tuples
 
     def _update_progress(self, current_count, total_count, progress_start_time):
         if total_count:
@@ -53,9 +113,9 @@ class NetworkTraffic:
                 packet_count += 1
                 processed_size += len(packet)
                 new_progress = (processed_size / total_file_size) * 100
-                if new_progress - progress >= 1:
+                if new_progress - progress >= 10:
                     progress = new_progress
-                    print(f"\rReading packets: {progress:.2f}% ({now_time - start_time:.2f}s)", end='', flush=True)
+                    print(f"\rReading packets: {progress:.0f}% ({now_time - start_time:.2f}s)", end='', flush=True)
                 now_time = time.time()
 
         print()  # Move to the next line after completion
@@ -68,6 +128,7 @@ class NetworkTraffic:
         packet_sizes = np.array([packet.wirelen for packet in self.packets])
         timestamps = np.array([packet.time for packet in self.packets])
         start_time = timestamps.min()
+        self.start_time = start_time
         end_time = timestamps.max()
         df = pd.DataFrame({
             'Size': packet_sizes,
@@ -171,6 +232,13 @@ class NetworkTraffic:
         bursts_points = self.get_burst_points()
         update_progress(1)
         bursts = self.get_continuous_bursts(bursts_points)
+        for burst in bursts:
+            five_tuples = FiveTuple.get_five_tuples_in_time_range(self.five_tuples, burst.timestamp,
+                                                                  burst.timestamp + burst.interval)
+
+            flow_event = FlowEvent(five_tuples)
+            burst.number_of_flows = len(flow_event.flows)
+
         update_progress(2)
         return bursts
 

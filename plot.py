@@ -106,8 +106,15 @@ class PlotNetworkTraffic:
 
     def plot_bursts_avg_packet_size_cdf(self):
         burst_avg_traffic = [burst.avg_traffic for burst in self.network_traffic.bursts]
-        self.plot_cdf(burst_avg_traffic, 'Burst', 'Average packet size (bytes)', title="Average packet size of microbursts (CDF)")
+        self.plot_cdf(burst_avg_traffic, 'Burst', 'Average packet size (bytes)',
+                      title="Average packet size of microbursts (CDF)")
 
     def plot_inter_burst_duration_signal_cdf(self):
         inter_burst_duration_signal = self.network_traffic.inter_burst_duration_signal
-        self.plot_cdf(inter_burst_duration_signal, 'Burst', 'Duration (microseconds)', title="Inter microburst duration (CDF)")
+        self.plot_cdf(inter_burst_duration_signal, 'Burst', 'Duration (microseconds)',
+                      title="Inter microburst duration (CDF)")
+
+    def plot_bursts_flow_count_cdf(self):
+        burst_flow_counts = [burst.number_of_flows for burst in self.network_traffic.bursts]
+        self.plot_cdf(burst_flow_counts, 'Burst', 'Number of Flows',
+                      title="CDF of Number of Distinct Flows in Each Burst")

@@ -25,7 +25,11 @@ if __name__ == '__main__':
         "bursts_ratio_cdf": network_plot.plot_bursts_ratio_cdf,
         "bursts_packet_count_cdf": network_plot.plot_bursts_packet_count_cdf,
         "bursts_avg_packet_size_cdf": network_plot.plot_bursts_avg_packet_size_cdf,
-        "inter_burst_duration_signal_cdf": network_plot.plot_inter_burst_duration_signal_cdf
+        "inter_burst_duration_signal_cdf": network_plot.plot_inter_burst_duration_signal_cdf,
+        "plot_bursts_flow_count_cdf": network_plot.plot_bursts_flow_count_cdf
     }
+    print(f"Number of bursts: {len(network_traffic.bursts)}")
+    print(f"Number of flows: {len(network_traffic.flow_event.flows)}")
     for plot in args.plots:
         plot_dict[plot]()
+
