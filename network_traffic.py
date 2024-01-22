@@ -1,8 +1,12 @@
+import bisect
+
+import numpy
 from scapy.all import *
 from utils import progress_decorator
 import pandas as pd
 import numpy as np
 from scapy.layers.inet import IP, TCP, UDP
+from scapy.layers.inet6 import IPv6
 
 
 class FiveTuple:
@@ -18,8 +22,24 @@ class FiveTuple:
         return self.src_ip, self.dst_ip, self.src_port, self.dst_port, self.proto
 
     @staticmethod
-    def get_five_tuples_in_time_range(five_tuples, start_time, end_time):
-        valid_five_tuples = [event for event in five_tuples if start_time <= event.timestamp <= end_time]
+    def create_time_index(five_tuples):
+        time_index = {}
+        for five_tuple in five_tuples:
+            timestamp = int(five_tuple.timestamp)
+            if timestamp not in time_index:
+                time_index[timestamp] = []
+            time_index[timestamp].append(five_tuple)
+        return time_index
+
+    @staticmethod
+    def get_five_tuples_in_time_range(time_index, start_time, end_time):
+        timestamps = list(time_index.keys())
+        start_idx = bisect.bisect_left(timestamps, start_time)
+        end_idx = bisect.bisect_right(timestamps, end_time)
+        valid_five_tuples = []
+        for idx in range(start_idx, end_idx):
+            timestamp = timestamps[idx]
+            valid_five_tuples.extend(time_index[timestamp])
         return valid_five_tuples
 
 
@@ -27,14 +47,17 @@ class FlowEvent:
     def __init__(self, five_tuples):
         self.flows = []
         for five_tuple in five_tuples:
-            src_ip, dst_ip, src_port, dst_port, proto = five_tuple.get_five_tuple()
-            if src_port is None or dst_port is None:
-                return
-            flow = (src_ip, dst_ip, src_port, dst_port, proto)
-            reverse_flow = (dst_ip, src_ip, dst_port, src_port, proto)
-            flows = [five_tuple.get_five_tuple() for five_tuple in self.flows]
-            if flow not in flows and reverse_flow not in flows:
-                self.flows.append(five_tuple)
+            self.add_five_tuple(five_tuple)
+
+    def add_five_tuple(self, five_tuple):
+        src_ip, dst_ip, src_port, dst_port, proto = five_tuple.get_five_tuple()
+        if src_port is None or dst_port is None:
+            return
+        flow = (src_ip, dst_ip, src_port, dst_port, proto)
+        reverse_flow = (dst_ip, src_ip, dst_port, src_port, proto)
+        flows = [five_tuple.get_five_tuple() for five_tuple in self.flows]
+        if flow not in flows and reverse_flow not in flows:
+            self.flows.append(five_tuple)
 
 
 class Burst:
@@ -63,34 +86,27 @@ class NetworkTraffic:
     def __init__(self, pcab_file_location, interval, avg_window_size, min_burst_ratio):
         self.pcab_file_location = pcab_file_location
         self.packets = []
+        self.index = {}
         self._read_packets_with_progress()
         self.interval = interval
         self.avg_window_size = avg_window_size
         self.traffic_rate_signal = self._get_traffic_rate_signal()
         self.avg_rate_signal = self._get_traffic_avg_rate_signal()
         self.min_burst_ratio = min_burst_ratio
+        self.flow_event = FlowEvent([])
         self.five_tuples = self.extract_5_tuple()
-        self.flow_event = FlowEvent(self.five_tuples)
+        self.time_index = FiveTuple.create_time_index(self.five_tuples)
+        # self.flow_event = FlowEvent(self.five_tuples)
         self.bursts = self._get_bursts()
         self.inter_burst_duration_signal = self._get_inter_burst_duration_signal()
 
     def extract_5_tuple(self):
-        tuples = []
-        for packet in self.packets:
-            if IP in packet:
-                src_ip = packet[IP].src
-                dst_ip = packet[IP].dst
-                proto = packet[IP].proto
-                if TCP in packet:
-                    src_port = packet[TCP].sport
-                    dst_port = packet[TCP].dport
-                elif UDP in packet:
-                    src_port = packet[UDP].sport
-                    dst_port = packet[UDP].dport
-                else:
-                    continue
-                tuples.append(FiveTuple(src_ip, dst_ip, src_port, dst_port, proto, (packet.time - self.start_time) * 1e6))
-        return tuples
+        all_five_tuples = []
+        for key, packets in self.index.items():
+            src_ip, dst_ip, src_port, dst_port, proto = key
+            five_tuple = FiveTuple(src_ip, dst_ip, src_port, dst_port, proto, (packets[0].time - self.start_time) * 1e6)
+            all_five_tuples.append(five_tuple)
+        return all_five_tuples
 
     def _update_progress(self, current_count, total_count, progress_start_time):
         if total_count:
@@ -103,26 +119,45 @@ class NetworkTraffic:
     def _read_packets_with_progress(self):
         total_file_size = os.path.getsize(self.pcab_file_location)
         processed_size = 0
-
         packet_count = 0
         start_time = time.time()
         progress = 0
         with PcapReader(self.pcab_file_location) as pcap_reader:
             for packet in pcap_reader:
                 self.packets.append(packet)
+                if IP in packet and (TCP in packet or UDP in packet):
+                    src_ip = packet[IP].src
+                    dst_ip = packet[IP].dst
+                    src_port = packet[TCP].sport if TCP in packet else packet[UDP].sport
+                    dst_port = packet[TCP].dport if TCP in packet else packet[UDP].dport
+                    proto = packet[IP].proto
+                    key = (src_ip, dst_ip, src_port, dst_port, proto)
+                    if key in self.index:
+                        self.index[key].append(packet)
+                    else:
+                        self.index[key] = [packet]
+                elif IPv6 in packet and (TCP in packet or UDP in packet):
+                    src_ip = packet[IPv6].src
+                    dst_ip = packet[IPv6].dst
+                    src_port = packet[TCP].sport if TCP in packet else packet[UDP].sport
+                    dst_port = packet[TCP].dport if TCP in packet else packet[UDP].dport
+                    proto = packet[IPv6].nh
+                    key = (src_ip, dst_ip, src_port, dst_port, proto)
+                    if key in self.index:
+                        self.index[key].append(packet)
+                    else:
+                        self.index[key] = [packet]
                 packet_count += 1
-                processed_size += len(packet)
+                processed_size += packet.wirelen
                 new_progress = (processed_size / total_file_size) * 100
-                if new_progress - progress >= 10:
+                if new_progress - progress >= 1:
                     progress = new_progress
-                    print(f"\rReading packets: {progress:.0f}% ({now_time - start_time:.2f}s)", end='', flush=True)
-                now_time = time.time()
-
-        print()  # Move to the next line after completion
+                    print(f"\rReading packets: {progress:.0f}% ({time.time() - start_time:.2f}s)", end='', flush=True)
+        print()
+        print(f"number of packets {packet_count}")
 
     @progress_decorator(total_steps=4)
     def _get_traffic_rate_signal(self, update_progress):
-
         if not self.packets:
             raise ValueError("No packets provided.")
         packet_sizes = np.array([packet.wirelen for packet in self.packets])
@@ -233,7 +268,7 @@ class NetworkTraffic:
         update_progress(1)
         bursts = self.get_continuous_bursts(bursts_points)
         for burst in bursts:
-            five_tuples = FiveTuple.get_five_tuples_in_time_range(self.five_tuples, burst.timestamp,
+            five_tuples = FiveTuple.get_five_tuples_in_time_range(self.time_index, burst.timestamp,
                                                                   burst.timestamp + burst.interval)
 
             flow_event = FlowEvent(five_tuples)
