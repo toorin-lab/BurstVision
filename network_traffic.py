@@ -32,14 +32,17 @@ class FiveTuple:
         return time_index
 
     @staticmethod
-    def get_five_tuples_in_time_range(time_index, start_time, end_time):
-        timestamps = list(time_index.keys())
-        start_idx = bisect.bisect_left(timestamps, start_time)
-        end_idx = bisect.bisect_right(timestamps, end_time)
-        valid_five_tuples = []
-        for idx in range(start_idx, end_idx):
-            timestamp = timestamps[idx]
-            valid_five_tuples.extend(time_index[timestamp])
+    def get_five_tuples_in_time_range(five_tuples, start_time, end_time):
+        # timestamps = list(time_index.keys())
+        # start_idx = bisect.bisect_left(timestamps, int(start_time))
+        # end_idx = bisect.bisect_right(timestamps, int(end_time))
+        # valid_five_tuples = []
+        # for idx in range(start_idx, end_idx):
+        #     timestamp = timestamps[idx]
+        #     valid_five_tuples.extend(time_index[timestamp])
+        # return valid_five_tuples
+
+        valid_five_tuples = [event for event in five_tuples if start_time <= event.timestamp <= end_time]
         return valid_five_tuples
 
 
@@ -104,8 +107,9 @@ class NetworkTraffic:
         all_five_tuples = []
         for key, packets in self.index.items():
             src_ip, dst_ip, src_port, dst_port, proto = key
-            five_tuple = FiveTuple(src_ip, dst_ip, src_port, dst_port, proto, (packets[0].time - self.start_time) * 1e6)
-            all_five_tuples.append(five_tuple)
+            for packet in packets:
+                five_tuple = FiveTuple(src_ip, dst_ip, src_port, dst_port, proto, (packet.time - self.start_time) * 1e6)
+                all_five_tuples.append(five_tuple)
         return all_five_tuples
 
     def _update_progress(self, current_count, total_count, progress_start_time):
@@ -268,7 +272,7 @@ class NetworkTraffic:
         update_progress(1)
         bursts = self.get_continuous_bursts(bursts_points)
         for burst in bursts:
-            five_tuples = FiveTuple.get_five_tuples_in_time_range(self.time_index, burst.timestamp,
+            five_tuples = FiveTuple.get_five_tuples_in_time_range(self.five_tuples, burst.timestamp,
                                                                   burst.timestamp + burst.interval)
 
             flow_event = FlowEvent(five_tuples)
