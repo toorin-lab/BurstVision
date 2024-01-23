@@ -110,6 +110,7 @@ class NetworkTraffic:
             for packet in packets:
                 five_tuple = FiveTuple(src_ip, dst_ip, src_port, dst_port, proto, (packet.time - self.start_time) * 1e6)
                 all_five_tuples.append(five_tuple)
+                self.flow_event.add_five_tuple(five_tuple)
         return all_five_tuples
 
     def _update_progress(self, current_count, total_count, progress_start_time):
