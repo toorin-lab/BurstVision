@@ -49,6 +49,7 @@ class FiveTuple:
 class FlowEvent:
     def __init__(self, five_tuples):
         self.flows = []
+        self.flows_index = {}
         for five_tuple in five_tuples:
             self.add_five_tuple(five_tuple)
 
@@ -58,9 +59,9 @@ class FlowEvent:
             return
         flow = (src_ip, dst_ip, src_port, dst_port, proto)
         reverse_flow = (dst_ip, src_ip, dst_port, src_port, proto)
-        flows = [five_tuple.get_five_tuple() for five_tuple in self.flows]
-        if flow not in flows and reverse_flow not in flows:
+        if self.flows_index.get(flow) is None and self.flows_index.get(reverse_flow) is None:
             self.flows.append(five_tuple)
+            self.flows_index[(src_ip, dst_ip, src_port, dst_port, proto)] = []
 
 
 class Burst:
@@ -105,12 +106,14 @@ class NetworkTraffic:
 
     def extract_5_tuple(self):
         all_five_tuples = []
+        print("Extracting 5 tuples", end="")
         for key, packets in self.index.items():
             src_ip, dst_ip, src_port, dst_port, proto = key
             for packet in packets:
                 five_tuple = FiveTuple(src_ip, dst_ip, src_port, dst_port, proto, (packet.time - self.start_time) * 1e6)
                 all_five_tuples.append(five_tuple)
                 self.flow_event.add_five_tuple(five_tuple)
+        print("\rFinished Extracting 5 tuples")
         return all_five_tuples
 
     def _update_progress(self, current_count, total_count, progress_start_time):
