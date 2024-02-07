@@ -5,8 +5,13 @@ from utils import progress_decorator
 
 
 class PlotNetworkTraffic:
-    def __init__(self, network_traffic_object: NetworkTraffic):
+    def __init__(self, network_traffic_object: NetworkTraffic, bursts=None):
         self.network_traffic = network_traffic_object
+        if bursts is not None:
+            self.flow_oriented_plot = True
+            self.bursts = bursts
+        else:
+            self.flow_oriented_plot = False
 
     @progress_decorator(total_steps=1)
     def plot_traffic_rate(self, update_progress):
@@ -89,32 +94,60 @@ class PlotNetworkTraffic:
         plt.show()
 
     def plot_bursts_duration_cdf(self):
-        burst_timestamps = [burst.interval for burst in self.network_traffic.bursts]
+        if self.flow_oriented_plot:
+            bursts = self.bursts
+        else:
+            bursts = self.network_traffic.bursts
+
+        burst_timestamps = [burst.interval for burst in bursts]
         self.plot_cdf(burst_timestamps, 'Burst', 'Duration (microseconds)', 'Duration of microbursts (CDF)')
 
     def bursts_traffic_volume(self):
-        burst_sizes = [burst.bursts_total_traffic for burst in self.network_traffic.bursts]
+        if self.flow_oriented_plot:
+            bursts = self.bursts
+        else:
+            bursts = self.network_traffic.bursts
+        burst_sizes = [burst.bursts_total_traffic for burst in bursts]
         self.plot_cdf(burst_sizes, 'Burst', 'Traffic volume (bytes)', title="Traffic volume of microbursts (CDF)")
 
     def plot_bursts_ratio_cdf(self):
-        burst_ratios = [burst.burst_ratio for burst in self.network_traffic.bursts]
+        if self.flow_oriented_plot:
+            bursts = self.bursts
+        else:
+            bursts = self.network_traffic.bursts
+        burst_ratios = [burst.burst_ratio for burst in bursts]
         self.plot_cdf(burst_ratios, 'Burst', 'Burst ratio', title="Burst ratio of microbursts (CDF)")
 
     def plot_bursts_packet_count_cdf(self):
-        burst_count = [burst.count_of_packets for burst in self.network_traffic.bursts]
+        if self.flow_oriented_plot:
+            bursts = self.bursts
+        else:
+            bursts = self.network_traffic.bursts
+        burst_count = [burst.count_of_packets for burst in bursts]
         self.plot_cdf(burst_count, 'Burst', 'Packet count', title="Packet count of microbursts (CDF)")
 
     def plot_bursts_avg_packet_size_cdf(self):
-        burst_avg_traffic = [burst.avg_traffic for burst in self.network_traffic.bursts]
+        if self.flow_oriented_plot:
+            bursts = self.bursts
+        else:
+            bursts = self.network_traffic.bursts
+        burst_avg_traffic = [burst.avg_traffic for burst in bursts]
         self.plot_cdf(burst_avg_traffic, 'Burst', 'Average packet size (bytes)',
                       title="Average packet size of microbursts (CDF)")
 
     def plot_inter_burst_duration_signal_cdf(self):
-        inter_burst_duration_signal = self.network_traffic.inter_burst_duration_signal
+        if self.flow_oriented_plot:
+            inter_burst_duration_signal = self.network_traffic._get_inter_burst_duration_signal(bursts=self.bursts)
+        else:
+            inter_burst_duration_signal = self.network_traffic.inter_burst_duration_signal
         self.plot_cdf(inter_burst_duration_signal, 'Burst', 'Duration (microseconds)',
-                      title="Inter microburst duration (CDF)")
+                      title="Inter micro burst duration (CDF)")
 
     def plot_bursts_flow_count_cdf(self):
-        burst_flow_counts = [burst.number_of_flows for burst in self.network_traffic.bursts]
+        if self.flow_oriented_plot:
+            bursts = self.bursts
+        else:
+            bursts = self.network_traffic.bursts
+        burst_flow_counts = [burst.number_of_flows for burst in bursts]
         self.plot_cdf(burst_flow_counts, 'Burst', 'Number of Flows',
                       title="CDF of Number of Distinct Flows in Each Burst")
