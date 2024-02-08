@@ -6,8 +6,8 @@ from network_traffic import NetworkTraffic
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Example script with command-line arguments')
-    parser.add_argument('--interval', type=int, default=1000, help="default is 100")
-    parser.add_argument('--avg_window_size', type=int, default=10000, help="default is 100000")
+    parser.add_argument('--interval', type=int, default=100, help="default is 100")
+    parser.add_argument('--avg_window_size', type=int, default=100000, help="default is 100000")
     parser.add_argument('--min_burst_ratio', type=int, default=5, help="min burst ratio, default value is 5")
     parser.add_argument('--file', type=str, help="location to pcab file")
     parser.add_argument('--plots', nargs='+', type=str, default=[], help='List of plots to generate')

@@ -238,7 +238,11 @@ class NetworkTraffic:
 
     @progress_decorator(total_steps=1)
     def _get_traffic_avg_rate_signal(self, update_progress):
-        kernel = np.ones(self.avg_window_size // self.interval) / (self.avg_window_size // self.interval)
+        kernel_size = self.avg_window_size // self.interval
+        signal_length = len(self.traffic_rate_signal['Rate'])
+        if signal_length < kernel_size:
+            kernel_size = signal_length
+        kernel = np.ones(kernel_size) / kernel_size
         averaged_traffic = np.convolve(kernel, self.traffic_rate_signal['Rate'], mode='same')
         update_progress(1, self)
         return averaged_traffic
@@ -298,8 +302,14 @@ class NetworkTraffic:
     def get_burst_points(self):
         traffic_rate_signal = self.traffic_rate_signal
         avg_traffic_signal = self.avg_rate_signal
-        # print(traffic_rate_signal['Rate'])
-        # print(avg_traffic_signal)
+        if len(traffic_rate_signal['Rate']) != len(avg_traffic_signal):
+            # print(len(self.packets))
+            # print(len(traffic_rate_signal['Rate']))
+
+            # print(len(avg_traffic_signal))
+            print(len(np.ones(self.avg_window_size // self.interval) / (self.avg_window_size // self.interval)))
+            # print(avg_traffic_signal)
+            exit(0)
         is_burst = traffic_rate_signal['Rate'] > (self.min_burst_ratio * avg_traffic_signal)
         burst_traffic = self.traffic_rate_signal[is_burst]
         burst_traffic_total = burst_traffic.groupby('Interval')['Size'].sum().fillna(0)
