@@ -112,6 +112,7 @@ class NetworkTraffic:
 
     def flow_oriented_network_traffic_bursts(self):
         detected_bursts = []
+        number_of_bursty_flows = 0
         for flow in self.index.keys():
             if len(self.index[flow]) == 1:
                 continue
@@ -120,7 +121,9 @@ class NetworkTraffic:
                                                   min_burst_ratio=self.min_burst_ratio,
                                                   packets=self.index[flow])
             detected_bursts += flow_network_traffic.bursts
-        return detected_bursts
+            if len(detected_bursts) >= 1:
+                number_of_bursty_flows += 1
+        return detected_bursts, number_of_bursty_flows
 
     def extract_5_tuple(self):
         all_five_tuples = []

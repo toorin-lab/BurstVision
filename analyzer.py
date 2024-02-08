@@ -19,8 +19,9 @@ if __name__ == '__main__':
     network_traffic = NetworkTraffic(pcab_file_location=args.file, interval=args.interval,
                                      avg_window_size=args.avg_window_size, min_burst_ratio=args.min_burst_ratio)
     flow_bursts = None
+    count_of_bursty_flows = 0
     if args.type == "flow_oriented":
-        flow_bursts = network_traffic.flow_oriented_network_traffic_bursts()
+        flow_bursts, count_of_bursty_flows = network_traffic.flow_oriented_network_traffic_bursts()
         network_plot = PlotNetworkTraffic(network_traffic_object=network_traffic, bursts=flow_bursts)
     else:
         network_plot = PlotNetworkTraffic(network_traffic_object=network_traffic)
@@ -37,6 +38,7 @@ if __name__ == '__main__':
     }
     if args.type == "flow_oriented":
         print(f"\nNumber of bursts: {len(flow_bursts)}")
+        print(f"\nNumber of bursty flows {count_of_bursty_flows}")
     else:
         print(f"\nNumber of bursts: {len(network_traffic.bursts)}")
     print(f"Number of flows: {len(network_traffic.flow_event.flows)}")
