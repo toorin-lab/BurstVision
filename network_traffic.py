@@ -88,14 +88,18 @@ class Burst:
 
 
 class NetworkTraffic:
-    def __init__(self, pcap_file_location, interval, avg_window_size, min_burst_ratio, packets=None):
+    def __init__(self, pcap_file_location, interval, avg_window_size, min_burst_ratio, packets=None,
+                 heavy_rate_threshold=0):
         self.pcap_file_location = pcap_file_location
         self.index = {}
         self.print_status = True
+        self.heavy_rate_threshold = heavy_rate_threshold
+        self.duration = 0
         if packets is None:
             self.packets = []
             self._read_packets_with_progress(packets)
         else:
+            self.is_heavy_flow = False
             self.packets = packets
             self.print_status = False
         self.interval = interval
@@ -110,29 +114,29 @@ class NetworkTraffic:
         self.bursts = self._get_bursts()
         self.inter_burst_duration_signal = self._get_inter_burst_duration_signal()
         self.flow_burst_counter = {}
+        self.flow_duration_dict = {}
+        self.heavy_flow_duration_dict = {}
+        self.bursty_flow_duration_dict = {}
 
-    def flow_oriented_network_traffic_bursts(self):
+    def flow_oriented_network_traffic_bursts(self, heavy_rate_threshold=0):
         detected_bursts = []
         number_of_bursty_flows = 0
+        number_of_heavy_flows = 0
         for flow in self.index.keys():
-            # if len(self.index[flow]) == 1:
-            #     continue
             flow_network_traffic = NetworkTraffic(pcap_file_location=self.pcap_file_location, interval=self.interval,
                                                   avg_window_size=self.avg_window_size,
                                                   min_burst_ratio=self.min_burst_ratio,
-                                                  packets=self.index[flow])
+                                                  packets=self.index[flow], heavy_rate_threshold=heavy_rate_threshold)
+            if flow_network_traffic.is_heavy_flow:
+                number_of_heavy_flows += 1
+                self.heavy_flow_duration_dict[flow] = flow_network_traffic.duration
             detected_bursts += flow_network_traffic.bursts
             self.flow_burst_counter[flow] = len(flow_network_traffic.bursts)
+            self.flow_duration_dict[flow] = flow_network_traffic.duration
             if len(flow_network_traffic.bursts) >= 1:
                 number_of_bursty_flows += 1
-        #
-        # print(number_of_bursty_flows)
-        # number_of_bursty_flows_2 = 0
-        # for flow in self.flow_burst_counter.keys():
-        #     if self.flow_burst_counter[flow] >= 1:
-        #         number_of_bursty_flows_2 += 1
-        # print(number_of_bursty_flows_2)
-        return detected_bursts, number_of_bursty_flows
+                self.bursty_flow_duration_dict[flow] = flow_network_traffic.duration
+        return detected_bursts, number_of_bursty_flows, number_of_heavy_flows
 
     def extract_5_tuple(self):
         all_five_tuples = []
@@ -223,6 +227,14 @@ class NetworkTraffic:
         packet_sizes = np.array([packet.wirelen for packet in self.packets])
         timestamps = np.array([packet.time for packet in self.packets])
         start_time = timestamps.min()
+        end_time = timestamps.max()
+        if end_time - start_time == 0:
+            self.avg_rate = 0
+        else:
+            self.avg_rate = sum(packet_sizes) / (end_time - start_time)
+        if self.avg_rate >= self.heavy_rate_threshold:
+            self.is_heavy_flow = True
+        self.duration = end_time - start_time
         self.start_time = start_time
         end_time = timestamps.max()
         df = pd.DataFrame({
@@ -314,14 +326,6 @@ class NetworkTraffic:
     def get_burst_points(self):
         traffic_rate_signal = self.traffic_rate_signal
         avg_traffic_signal = self.avg_rate_signal
-        if len(traffic_rate_signal['Rate']) != len(avg_traffic_signal):
-            # print(len(self.packets))
-            # print(len(traffic_rate_signal['Rate']))
-
-            # print(len(avg_traffic_signal))
-            print(len(np.ones(self.avg_window_size // self.interval) / (self.avg_window_size // self.interval)))
-            # print(avg_traffic_signal)
-            exit(0)
         is_burst = traffic_rate_signal['Rate'] > (self.min_burst_ratio * avg_traffic_signal)
         burst_traffic = self.traffic_rate_signal[is_burst]
         burst_traffic_total = burst_traffic.groupby('Interval')['Size'].sum().fillna(0)

@@ -1,6 +1,7 @@
 import time
 from plot import PlotNetworkTraffic
 import argparse
+from decimal import Decimal
 
 from network_traffic import NetworkTraffic
 
@@ -11,7 +12,8 @@ if __name__ == '__main__':
     parser.add_argument('--min_burst_ratio', type=int, default=5, help="min burst ratio, default value is 5")
     parser.add_argument('--file', type=str, help="location to pcap file")
     parser.add_argument('--plots', nargs='+', type=str, default=[], help='List of plots to generate')
-    parser.add_argument('--type', type=str, default="traffic_oriented", help='List of plots to generate')
+    parser.add_argument('--type', type=str, default="traffic_oriented")
+    parser.add_argument('--heavy_rate_threshold', type=str, default=0)
     args = parser.parse_args()
     if not args.file:
         raise Exception("Please specify the file with --file")
@@ -20,9 +22,12 @@ if __name__ == '__main__':
                                      avg_window_size=args.avg_window_size, min_burst_ratio=args.min_burst_ratio)
     flow_bursts = None
     count_of_bursty_flows = 0
+    number_of_heavy_flows = 0
     if args.type == "flow_oriented":
-        flow_bursts, count_of_bursty_flows = network_traffic.flow_oriented_network_traffic_bursts()
+        flow_bursts, count_of_bursty_flows, number_of_heavy_flows = network_traffic.flow_oriented_network_traffic_bursts(
+            heavy_rate_threshold=Decimal(args.heavy_rate_threshold))
         network_plot = PlotNetworkTraffic(network_traffic_object=network_traffic, bursts=flow_bursts)
+
     else:
         network_plot = PlotNetworkTraffic(network_traffic_object=network_traffic)
 
@@ -35,11 +40,15 @@ if __name__ == '__main__':
         "bursts_avg_packet_size_cdf": network_plot.plot_bursts_avg_packet_size_cdf,
         "inter_burst_duration_signal_cdf": network_plot.plot_inter_burst_duration_signal_cdf,
         "plot_bursts_flow_count_cdf": network_plot.plot_bursts_flow_count_cdf,
-        "plot_bursts_in_each_flow_cdf": network_plot.plot_bursts_in_each_flow_cdf
+        "plot_bursts_in_each_flow_cdf": network_plot.plot_bursts_in_each_flow_cdf,
+        "plot_cdf_flow_duration_all": network_plot.plot_cdf_flow_duration_all,
+        "plot_cdf_flow_duration_heavy": network_plot.plot_cdf_flow_duration_heavy,
+        "plot_cdf_flow_duration_bursty": network_plot.plot_cdf_flow_duration_bursty
     }
     if args.type == "flow_oriented":
         print(f"\nNumber of bursts: {len(flow_bursts)}")
         print(f"\nNumber of bursty flows {count_of_bursty_flows}")
+        print(f"\nNumber of heavy flows {number_of_heavy_flows}")
     else:
         print(f"\nNumber of bursts: {len(network_traffic.bursts)}")
     print(f"Number of flows: {len(network_traffic.flow_event.flows)}")

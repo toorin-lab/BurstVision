@@ -160,3 +160,32 @@ class PlotNetworkTraffic:
 
         self.plot_cdf(flow_burst_count, 'Burst', 'Number of Bursts',
                       title="CDF of Number of Bursts in each flow")
+
+    def plot_cdf_flow_duration_all(self):
+        if not self.flow_oriented_plot:
+            raise Exception("This plot only works on flow oriented mode")
+        flow_burst_count = [self.network_traffic.flow_duration_dict[flow] for flow in
+                            self.network_traffic.flow_duration_dict.keys()]
+
+        self.plot_cdf(flow_burst_count, 'Burst', 'Duration',
+                      title="CDF of Duration of each flow")
+
+    def plot_cdf_flow_duration_heavy(self):
+        if not self.flow_oriented_plot:
+            raise Exception("This plot only works on flow oriented mode")
+        flow_burst_count = [self.network_traffic.heavy_flow_duration_dict[flow] for flow in
+                            self.network_traffic.heavy_flow_duration_dict.keys()]
+
+        self.plot_cdf(flow_burst_count, 'Burst', 'Duration',
+                      title="CDF of Duration of heavy flow")
+
+    def plot_cdf_flow_duration_bursty(self):
+        if not self.flow_oriented_plot:
+            raise Exception("This plot only works on flow oriented mode")
+        flow_burst_count = [self.network_traffic.bursty_flow_duration_dict[flow] for flow in
+                            self.network_traffic.bursty_flow_duration_dict.keys()]
+
+        self.plot_cdf(flow_burst_count, 'Burst', 'Duration',
+                      title="CDF of Duration of bursty flow")
+
+
