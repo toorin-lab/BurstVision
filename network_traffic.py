@@ -122,8 +122,8 @@ class NetworkTraffic:
                                                   min_burst_ratio=self.min_burst_ratio,
                                                   packets=self.index[flow])
             detected_bursts += flow_network_traffic.bursts
-            self.flow_burst_counter[flow] = len(detected_bursts)
-            if len(detected_bursts) >= 1:
+            self.flow_burst_counter[flow] = len(flow_network_traffic.bursts)
+            if len(flow_network_traffic.bursts) >= 1:
                 number_of_bursty_flows += 1
         return detected_bursts, number_of_bursty_flows
 
