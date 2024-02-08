@@ -9,14 +9,14 @@ if __name__ == '__main__':
     parser.add_argument('--interval', type=int, default=100, help="default is 100")
     parser.add_argument('--avg_window_size', type=int, default=100000, help="default is 100000")
     parser.add_argument('--min_burst_ratio', type=int, default=5, help="min burst ratio, default value is 5")
-    parser.add_argument('--file', type=str, help="location to pcab file")
+    parser.add_argument('--file', type=str, help="location to pcap file")
     parser.add_argument('--plots', nargs='+', type=str, default=[], help='List of plots to generate')
     parser.add_argument('--type', type=str, default="traffic_oriented", help='List of plots to generate')
     args = parser.parse_args()
     if not args.file:
         raise Exception("Please specify the file with --file")
     start_time = time.time()
-    network_traffic = NetworkTraffic(pcab_file_location=args.file, interval=args.interval,
+    network_traffic = NetworkTraffic(pcap_file_location=args.file, interval=args.interval,
                                      avg_window_size=args.avg_window_size, min_burst_ratio=args.min_burst_ratio)
     flow_bursts = None
     count_of_bursty_flows = 0

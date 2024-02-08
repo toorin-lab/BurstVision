@@ -88,8 +88,8 @@ class Burst:
 
 
 class NetworkTraffic:
-    def __init__(self, pcab_file_location, interval, avg_window_size, min_burst_ratio, packets=None):
-        self.pcab_file_location = pcab_file_location
+    def __init__(self, pcap_file_location, interval, avg_window_size, min_burst_ratio, packets=None):
+        self.pcap_file_location = pcap_file_location
         self.index = {}
         self.print_status = True
         if packets is None:
@@ -116,7 +116,7 @@ class NetworkTraffic:
         for flow in self.index.keys():
             if len(self.index[flow]) == 1:
                 continue
-            flow_network_traffic = NetworkTraffic(pcab_file_location=self.pcab_file_location, interval=self.interval,
+            flow_network_traffic = NetworkTraffic(pcap_file_location=self.pcap_file_location, interval=self.interval,
                                                   avg_window_size=self.avg_window_size,
                                                   min_burst_ratio=self.min_burst_ratio,
                                                   packets=self.index[flow])
@@ -152,7 +152,7 @@ class NetworkTraffic:
                 print("\rReading packets...", end='', flush=True)
 
     def _read_packets_with_progress(self, packets=None):
-        total_file_size = os.path.getsize(self.pcab_file_location)
+        total_file_size = os.path.getsize(self.pcap_file_location)
         processed_size = 0
         packet_count = 0
         start_time = time.time()
@@ -160,7 +160,7 @@ class NetworkTraffic:
         read_from_file = False
         if packets is None:
             read_from_file = True
-            packets = PcapReader(self.pcab_file_location)
+            packets = PcapReader(self.pcap_file_location)
         for packet in packets:
             if read_from_file:
                 self.packets.append(packet)
