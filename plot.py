@@ -151,3 +151,12 @@ class PlotNetworkTraffic:
         burst_flow_counts = [burst.number_of_flows for burst in bursts]
         self.plot_cdf(burst_flow_counts, 'Burst', 'Number of Flows',
                       title="CDF of Number of Distinct Flows in Each Burst")
+
+    def plot_bursts_in_each_flow_cdf(self):
+        if not self.flow_oriented_plot:
+            raise Exception("This plot only works on flow oriented mode")
+        flow_burst_count = [self.network_traffic.flow_burst_counter[flow] for flow in
+                            self.network_traffic.flow_burst_counter.keys()]
+
+        self.plot_cdf(flow_burst_count, 'Burst', 'Number of Bursts',
+                      title="CDF of Number of Bursts in each flow")

@@ -34,7 +34,8 @@ if __name__ == '__main__':
         "bursts_packet_count_cdf": network_plot.plot_bursts_packet_count_cdf,
         "bursts_avg_packet_size_cdf": network_plot.plot_bursts_avg_packet_size_cdf,
         "inter_burst_duration_signal_cdf": network_plot.plot_inter_burst_duration_signal_cdf,
-        "plot_bursts_flow_count_cdf": network_plot.plot_bursts_flow_count_cdf
+        "plot_bursts_flow_count_cdf": network_plot.plot_bursts_flow_count_cdf,
+        "plot_bursts_in_each_flow_cdf": network_plot.plot_bursts_in_each_flow_cdf
     }
     if args.type == "flow_oriented":
         print(f"\nNumber of bursts: {len(flow_bursts)}")

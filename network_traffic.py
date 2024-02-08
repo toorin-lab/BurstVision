@@ -109,6 +109,7 @@ class NetworkTraffic:
         # self.flow_event = FlowEvent(self.five_tuples)
         self.bursts = self._get_bursts()
         self.inter_burst_duration_signal = self._get_inter_burst_duration_signal()
+        self.flow_burst_counter = {}
 
     def flow_oriented_network_traffic_bursts(self):
         detected_bursts = []
@@ -121,6 +122,7 @@ class NetworkTraffic:
                                                   min_burst_ratio=self.min_burst_ratio,
                                                   packets=self.index[flow])
             detected_bursts += flow_network_traffic.bursts
+            self.flow_burst_counter[flow] = len(detected_bursts)
             if len(detected_bursts) >= 1:
                 number_of_bursty_flows += 1
         return detected_bursts, number_of_bursty_flows
