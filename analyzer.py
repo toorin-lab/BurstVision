@@ -92,6 +92,11 @@ if __name__ == '__main__':
         clear_screen()
         if error_message != "":
             print(red_start + error_message + red_end)
+            error_message = ""
+        if args.type == "flow_oriented":
+            print(blue_start + "flow oriented mode" + blue_end)
+        else:
+            print(blue_start + "Traffic oriented mode" + blue_end)
         choice = plot_menu(plot_dict)
         if choice == '0':
             break
