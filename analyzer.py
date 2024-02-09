@@ -86,13 +86,6 @@ if __name__ == '__main__':
         "plot_cdf_flow_duration_heavy": network_plot.plot_cdf_flow_duration_heavy,
         "plot_cdf_flow_duration_bursty": network_plot.plot_cdf_flow_duration_bursty
     }
-    if args.type == "flow_oriented":
-        print(f"\nNumber of bursts: {len(flow_bursts)}")
-        print(f"\nNumber of bursty flows {count_of_bursty_flows}")
-        print(f"\nNumber of heavy flows {number_of_heavy_flows}")
-    else:
-        print(f"\nNumber of bursts: {len(network_traffic.bursts)}")
-    print(f"Number of flows: {len(network_traffic.flow_event.flows)}")
     error_message = ""
 
     while True:
