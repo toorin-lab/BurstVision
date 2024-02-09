@@ -1,9 +1,50 @@
+import os
+import platform
+import threading
 import time
 from plot import PlotNetworkTraffic
 import argparse
 from decimal import Decimal
 
 from network_traffic import NetworkTraffic
+
+blue_start = "\033[94m"
+blue_end = "\033[0m"
+red_start = "\033[91m"
+red_end = "\033[0m"
+green_start = "\033[92m"
+green_end = "\033[0m"
+
+
+
+def plot_menu(plot_dict):
+    informational_message = "Select a plot to generate or 0 to exit program and CTRL+C to exit plot:"
+    print(blue_start + informational_message + blue_end)
+    plot_keys = list(plot_dict.keys())
+    menu_lines = []
+    items_per_line = 3
+
+    max_length = max(len(plot) for plot in plot_keys) + 4
+
+    for i in range(0, len(plot_keys), items_per_line):
+        slice_end = min(i + items_per_line, len(plot_keys))
+        line_items = [f"{i + 1}: {plot_keys[i]}".ljust(max_length) for i in range(i, slice_end)]
+        line = "  ".join(line_items)
+        menu_lines.append(line)
+    print("\n".join(menu_lines))
+    print(green_start + f"{len(plot_dict) + 1}: Show network traffic information" + green_end)
+    print()
+    print(red_start + "0: Exit".ljust(max_length) + red_end)
+    choice = input("Enter choice: ")
+    return choice
+
+
+def clear_screen():
+    if platform.system() == "Windows":
+        os.system('cls')
+    else:
+        os.system('clear')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Example script with command-line arguments')
@@ -52,6 +93,34 @@ if __name__ == '__main__':
     else:
         print(f"\nNumber of bursts: {len(network_traffic.bursts)}")
     print(f"Number of flows: {len(network_traffic.flow_event.flows)}")
+    error_message = ""
+
+    while True:
+        clear_screen()
+        if error_message != "":
+            print(red_start + error_message + red_end)
+        choice = plot_menu(plot_dict)
+        if choice == '0':
+            break
+        elif int(choice) == len(plot_dict) + 1:
+            clear_screen()
+            print(
+                f"Number of bursts: {len(flow_bursts) if args.type == 'flow_oriented' else len(network_traffic.bursts)}")
+            print(f"Number of bursty flows: {count_of_bursty_flows}")
+            print(f"Number of heavy flows: {number_of_heavy_flows}")
+            print(f"Number of flows: {len(network_traffic.flow_event.flows)}")
+            input("\nPress Enter to return to the menu...")
+            continue
+        clear_screen()
+        print(blue_start + "Enter CTRL+C to exit the plot" + blue_end)
+        try:
+            plot_key = list(plot_dict.keys())[int(choice) - 1]
+            plot_dict[plot_key]()
+        except (ValueError, IndexError):
+            error_message = "Invalid selection, please try again."
+        except KeyboardInterrupt:
+            pass
+        except Exception as ve:
+            error_message = str(ve)
     for plot in args.plots:
         plot_dict[plot]()
-
