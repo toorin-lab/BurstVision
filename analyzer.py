@@ -47,14 +47,14 @@ def clear_screen():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Example script with command-line arguments')
-    parser.add_argument('--interval', type=int, default=100, help="default is 100")
-    parser.add_argument('--avg_window_size', type=int, default=100000, help="default is 100000")
+    parser.add_argument('--interval', type=int, default=100, help="microseconds")
+    parser.add_argument('--avg_window_size', type=int, default=100000, help="microseconds")
     parser.add_argument('--min_burst_ratio', type=int, default=5, help="min burst ratio, default value is 5")
     parser.add_argument('--file', type=str, help="location to pcap file")
     parser.add_argument('--plots', nargs='+', type=str, default=[], help='List of plots to generate')
     parser.add_argument('--type', type=str, default="traffic_oriented")
-    parser.add_argument('--heavy_rate_threshold', type=str, default=0)
-    parser.add_argument('--min_heavy_duration', type=str, default=2000, help="in millisecond")
+    parser.add_argument('--heavy_rate_threshold', type=str, default=0, help="bytes/second")
+    parser.add_argument('--min_heavy_duration', type=str, default=2000, help="millisecond")
 
     args = parser.parse_args()
     if not args.file:
@@ -99,9 +99,14 @@ if __name__ == '__main__':
         else:
             print(blue_start + "Traffic oriented mode" + blue_end)
         choice = plot_menu(plot_dict)
-        if choice == '0':
+        try:
+            choice = int(choice)
+        except ValueError as ve:
+            error_message = "Invalid selection, please try again."
+            continue
+        if choice == 0:
             break
-        elif int(choice) == len(plot_dict) + 1:
+        elif choice == len(plot_dict) + 1:
             clear_screen()
             print(
                 f"Number of bursts: {len(flow_bursts) if args.type == 'flow_oriented' else len(network_traffic.bursts)}")
