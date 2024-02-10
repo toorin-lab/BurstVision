@@ -16,7 +16,6 @@ green_start = "\033[92m"
 green_end = "\033[0m"
 
 
-
 def plot_menu(plot_dict):
     informational_message = "Select a plot to generate or 0 to exit program and CTRL+C to exit plot:"
     print(blue_start + informational_message + blue_end)
@@ -105,8 +104,13 @@ if __name__ == '__main__':
             print(
                 f"Number of bursts: {len(flow_bursts) if args.type == 'flow_oriented' else len(network_traffic.bursts)}")
             print(f"Number of bursty flows: {count_of_bursty_flows}")
-            print(f"Number of heavy flows: {number_of_heavy_flows}")
             print(f"Number of flows: {len(network_traffic.flow_event.flows)}")
+            print(f"Number of heavy flows: {number_of_heavy_flows}")
+            flows = network_traffic.heavy_flow_duration_dict.keys()
+            print()
+            print(blue_start + f"Heavy Flows" + blue_end)
+            for flow in flows:
+                print(flow)
             input("\nPress Enter to return to the menu...")
             continue
         clear_screen()
