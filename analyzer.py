@@ -54,6 +54,8 @@ if __name__ == '__main__':
     parser.add_argument('--plots', nargs='+', type=str, default=[], help='List of plots to generate')
     parser.add_argument('--type', type=str, default="traffic_oriented")
     parser.add_argument('--heavy_rate_threshold', type=str, default=0)
+    parser.add_argument('--min_heavy_duration', type=str, default=2000, help="in millisecond")
+
     args = parser.parse_args()
     if not args.file:
         raise Exception("Please specify the file with --file")
@@ -65,7 +67,7 @@ if __name__ == '__main__':
     number_of_heavy_flows = 0
     if args.type == "flow_oriented":
         flow_bursts, count_of_bursty_flows, number_of_heavy_flows = network_traffic.flow_oriented_network_traffic_bursts(
-            heavy_rate_threshold=Decimal(args.heavy_rate_threshold))
+            heavy_rate_threshold=Decimal(args.heavy_rate_threshold), min_heavy_duration=Decimal(args.min_heavy_duration))
         network_plot = PlotNetworkTraffic(network_traffic_object=network_traffic, bursts=flow_bursts)
 
     else:

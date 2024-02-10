@@ -119,7 +119,7 @@ class NetworkTraffic:
         self.heavy_flow_rate_dict = {}
         self.bursty_flow_duration_dict = {}
 
-    def flow_oriented_network_traffic_bursts(self, heavy_rate_threshold=0):
+    def flow_oriented_network_traffic_bursts(self, heavy_rate_threshold=0, min_heavy_duration=2000):
         detected_bursts = []
         number_of_bursty_flows = 0
         number_of_heavy_flows = 0
@@ -128,7 +128,7 @@ class NetworkTraffic:
                                                   avg_window_size=self.avg_window_size,
                                                   min_burst_ratio=self.min_burst_ratio,
                                                   packets=self.index[flow], heavy_rate_threshold=heavy_rate_threshold)
-            if flow_network_traffic.is_heavy_flow:
+            if flow_network_traffic.is_heavy_flow and flow_network_traffic.duration > min_heavy_duration / 1000:
                 number_of_heavy_flows += 1
                 self.heavy_flow_duration_dict[flow] = flow_network_traffic.duration
                 self.heavy_flow_rate_dict[flow] = flow_network_traffic.avg_rate
