@@ -107,10 +107,6 @@ if __name__ == '__main__':
             print(f"Number of flows: {len(network_traffic.flow_event.flows)}")
             print(f"Number of heavy flows: {number_of_heavy_flows}")
             flows = network_traffic.heavy_flow_duration_dict.keys()
-            print()
-            print(blue_start + f"Heavy Flows" + blue_end)
-            for flow in flows:
-                print(f"{flow}: {network_traffic.heavy_flow_rate_dict[flow]}")
             input("\nPress Enter to return to the menu...")
             continue
         clear_screen()
