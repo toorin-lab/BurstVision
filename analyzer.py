@@ -110,7 +110,7 @@ if __name__ == '__main__':
             print()
             print(blue_start + f"Heavy Flows" + blue_end)
             for flow in flows:
-                print(flow)
+                print(f"{flow}: {network_traffic.heavy_flow_rate_dict[flow]}")
             input("\nPress Enter to return to the menu...")
             continue
         clear_screen()
