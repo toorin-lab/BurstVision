@@ -145,7 +145,7 @@ class PlotNetworkTraffic:
 
     def plot_bursts_flow_count_cdf(self):
         if self.flow_oriented_plot:
-            bursts = self.bursts
+            raise Exception("This plot only works on traffic oriented mode")
         else:
             bursts = self.network_traffic.bursts
         burst_flow_counts = [burst.number_of_flows for burst in bursts]

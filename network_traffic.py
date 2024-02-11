@@ -358,6 +358,8 @@ class NetworkTraffic:
     def _get_inter_burst_duration_signal(self, bursts=None):
         if bursts is None:
             bursts = self.bursts
+        else:
+            bursts = sorted(bursts, key=lambda burst: burst.timestamp)
         inter_burst_duration = []
         for i in range(len(bursts) - 1):
             inter_burst_duration.append(
