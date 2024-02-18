@@ -116,7 +116,7 @@ if __name__ == '__main__':
             print(f"Number of bursty flows: {count_of_bursty_flows}")
             print(f"Number of flows: {len(network_traffic.flow_event.flows)}")
             print(f"Number of heavy flows: {number_of_heavy_flows}")
-            print(f"Number of concurrent bursts: {number_of_concurrent_bursts}")
+            print(f"Number of concurrent bursty flows: {number_of_concurrent_bursts}")
             flows = network_traffic.heavy_flow_duration_dict.keys()
             input("\nPress Enter to return to the menu...")
             continue
