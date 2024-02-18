@@ -66,7 +66,8 @@ class FlowEvent:
 
 
 class Burst:
-    def __init__(self, timestamp, burst_ratio, interval=None, burst_total_traffic=None, count_of_packets=0):
+    def __init__(self, timestamp, burst_ratio, interval=None, burst_total_traffic=None, count_of_packets=0,
+                 real_timestamp=None):
         self.timestamp = timestamp
         self.burst_ratio = burst_ratio
         self.interval = interval
@@ -75,6 +76,8 @@ class Burst:
         self.count_of_packets = count_of_packets
         self.avg_traffic = 0
         self.number_of_flows = 0
+        self.real_timestamp = real_timestamp
+        self.number_of_bursty_flows = 0
 
     def is_part_of_burst(self, packet):
         packet_time = packet.time
@@ -123,11 +126,14 @@ class NetworkTraffic:
         detected_bursts = []
         number_of_bursty_flows = 0
         number_of_heavy_flows = 0
+        number_of_concurrent_bursts = 0
+        flows = []
         for flow in self.index.keys():
             flow_network_traffic = NetworkTraffic(pcap_file_location=self.pcap_file_location, interval=self.interval,
                                                   avg_window_size=self.avg_window_size,
                                                   min_burst_ratio=self.min_burst_ratio,
                                                   packets=self.index[flow], heavy_rate_threshold=heavy_rate_threshold)
+            flows.append(flow_network_traffic)
             if flow_network_traffic.is_heavy_flow and flow_network_traffic.duration > min_heavy_duration / 1000:
                 number_of_heavy_flows += 1
                 self.heavy_flow_duration_dict[flow] = flow_network_traffic.duration
@@ -138,7 +144,20 @@ class NetworkTraffic:
             if len(flow_network_traffic.bursts) >= 1:
                 number_of_bursty_flows += 1
                 self.bursty_flow_duration_dict[flow] = flow_network_traffic.duration
-        return detected_bursts, number_of_bursty_flows, number_of_heavy_flows
+
+        for burst in self.bursts:
+            burst_duration = [burst.real_timestamp, burst.interval + burst.real_timestamp]
+            number_of_bursty_flows = 0
+            for flow in flows:
+                for flow_burst in flow.bursts:
+                    if burst_duration[0] <= flow_burst.real_timestamp <= burst_duration[1] or \
+                            burst_duration[0] <= flow_burst.real_timestamp + flow_burst.interval <= burst_duration[1]:
+                        number_of_bursty_flows += 1
+                        break
+            if number_of_bursty_flows > 1:
+                number_of_concurrent_bursts += 1
+            burst.number_of_bursty_flows = number_of_bursty_flows
+        return detected_bursts, number_of_bursty_flows, number_of_heavy_flows, number_of_concurrent_bursts
 
     def extract_5_tuple(self):
         all_five_tuples = []
@@ -259,6 +278,8 @@ class NetworkTraffic:
         traffic_summary['Rate'] = (traffic_summary['Size'] / self.interval) * 1e6  # Multiply by 1,000,000
         traffic_summary['Count'] = df.groupby('Interval').size()
         traffic_summary['Count'].fillna(0, inplace=True)
+        real_timestamps = all_intervals['Interval'] * self.interval + start_time * 1e6
+        traffic_summary['Timestamp'] = real_timestamps
         update_progress(4, self)
         return traffic_summary
 
@@ -335,9 +356,11 @@ class NetworkTraffic:
         burst_avg = self.avg_rate_signal[is_burst]
         burst_ratio = np.where(burst_avg != 0, burst_traffic['Rate'] / burst_avg, np.inf)
         bursts_points = np.array(
-            [Burst(time * self.interval, ratio, burst_total_traffic=total_traffic, count_of_packets=count) for
-             time, ratio, total_traffic, count in
-             zip(burst_traffic['Interval'], burst_ratio, burst_traffic_total, burst_traffic['Count'])])
+            [Burst(time * self.interval, ratio, burst_total_traffic=total_traffic, count_of_packets=count,
+                   real_timestamp=real_timestamp) for
+             time, ratio, total_traffic, count, real_timestamp in
+             zip(burst_traffic['Interval'], burst_ratio, burst_traffic_total, burst_traffic['Count'],
+                 burst_traffic['Timestamp'])])
         return bursts_points
 
     @progress_decorator(total_steps=2)

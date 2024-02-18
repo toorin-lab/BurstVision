@@ -65,9 +65,11 @@ if __name__ == '__main__':
     flow_bursts = None
     count_of_bursty_flows = 0
     number_of_heavy_flows = 0
+    number_of_concurrent_bursts = 0
     if args.type == "flow_oriented":
-        flow_bursts, count_of_bursty_flows, number_of_heavy_flows = network_traffic.flow_oriented_network_traffic_bursts(
-            heavy_rate_threshold=Decimal(args.heavy_rate_threshold), min_heavy_duration=Decimal(args.min_heavy_duration))
+        flow_bursts, count_of_bursty_flows, number_of_heavy_flows, number_of_concurrent_bursts = network_traffic.flow_oriented_network_traffic_bursts(
+            heavy_rate_threshold=Decimal(args.heavy_rate_threshold),
+            min_heavy_duration=Decimal(args.min_heavy_duration))
         network_plot = PlotNetworkTraffic(network_traffic_object=network_traffic, bursts=flow_bursts)
 
     else:
@@ -85,7 +87,8 @@ if __name__ == '__main__':
         "plot_bursts_in_each_flow_cdf": network_plot.plot_bursts_in_each_flow_cdf,
         "plot_cdf_flow_duration_all": network_plot.plot_cdf_flow_duration_all,
         "plot_cdf_flow_duration_heavy": network_plot.plot_cdf_flow_duration_heavy,
-        "plot_cdf_flow_duration_bursty": network_plot.plot_cdf_flow_duration_bursty
+        "plot_cdf_flow_duration_bursty": network_plot.plot_cdf_flow_duration_bursty,
+        "plot_cdf_number_of_concurrent_bursty_flows": network_plot.plot_cdf_number_of_concurrent_bursty_flows
     }
     error_message = ""
 
@@ -113,6 +116,7 @@ if __name__ == '__main__':
             print(f"Number of bursty flows: {count_of_bursty_flows}")
             print(f"Number of flows: {len(network_traffic.flow_event.flows)}")
             print(f"Number of heavy flows: {number_of_heavy_flows}")
+            print(f"Number of concurrent bursts: {number_of_concurrent_bursts}")
             flows = network_traffic.heavy_flow_duration_dict.keys()
             input("\nPress Enter to return to the menu...")
             continue
