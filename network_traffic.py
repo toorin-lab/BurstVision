@@ -126,7 +126,6 @@ class NetworkTraffic:
         detected_bursts = []
         number_of_bursty_flows = 0
         number_of_heavy_flows = 0
-        number_of_concurrent_bursts = 0
         flows = []
         for flow in self.index.keys():
             flow_network_traffic = NetworkTraffic(pcap_file_location=self.pcap_file_location, interval=self.interval,
@@ -147,17 +146,15 @@ class NetworkTraffic:
 
         for burst in self.bursts:
             burst_duration = [burst.real_timestamp, burst.interval + burst.real_timestamp]
-            number_of_bursty_flows = 0
+            number_of_bursts_in_flows = 0
             for flow in flows:
                 for flow_burst in flow.bursts:
                     if burst_duration[0] <= flow_burst.real_timestamp <= burst_duration[1] or \
                             burst_duration[0] <= flow_burst.real_timestamp + flow_burst.interval <= burst_duration[1]:
-                        number_of_bursty_flows += 1
+                        number_of_bursts_in_flows += 1
                         break
-            if number_of_bursty_flows > 1:
-                number_of_concurrent_bursts += 1
-            burst.number_of_bursty_flows = number_of_bursty_flows
-        return detected_bursts, number_of_bursty_flows, number_of_heavy_flows, number_of_concurrent_bursts
+            burst.number_of_bursty_flows = number_of_bursts_in_flows
+        return detected_bursts, number_of_bursty_flows, number_of_heavy_flows
 
     def extract_5_tuple(self):
         all_five_tuples = []

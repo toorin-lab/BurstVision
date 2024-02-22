@@ -28,7 +28,7 @@ def plot_menu(plot_dict):
     for i in range(0, len(plot_keys), items_per_line):
         slice_end = min(i + items_per_line, len(plot_keys))
         line_items = [f"{i + 1}: {plot_keys[i]}".ljust(max_length) for i in range(i, slice_end)]
-        line = "  ".join(line_items)
+        line = " ".join(line_items)
         menu_lines.append(line)
     print("\n".join(menu_lines))
     print(green_start + f"{len(plot_dict) + 1}: Show network traffic information" + green_end)
@@ -65,9 +65,8 @@ if __name__ == '__main__':
     flow_bursts = None
     count_of_bursty_flows = 0
     number_of_heavy_flows = 0
-    number_of_concurrent_bursts = 0
     if args.type == "flow_oriented":
-        flow_bursts, count_of_bursty_flows, number_of_heavy_flows, number_of_concurrent_bursts = network_traffic.flow_oriented_network_traffic_bursts(
+        flow_bursts, count_of_bursty_flows, number_of_heavy_flows = network_traffic.flow_oriented_network_traffic_bursts(
             heavy_rate_threshold=Decimal(args.heavy_rate_threshold),
             min_heavy_duration=Decimal(args.min_heavy_duration))
         network_plot = PlotNetworkTraffic(network_traffic_object=network_traffic, bursts=flow_bursts)
@@ -116,7 +115,6 @@ if __name__ == '__main__':
             print(f"Number of bursty flows: {count_of_bursty_flows}")
             print(f"Number of flows: {len(network_traffic.flow_event.flows)}")
             print(f"Number of heavy flows: {number_of_heavy_flows}")
-            print(f"Number of concurrent bursty flows: {number_of_concurrent_bursts}")
             flows = network_traffic.heavy_flow_duration_dict.keys()
             input("\nPress Enter to return to the menu...")
             continue
