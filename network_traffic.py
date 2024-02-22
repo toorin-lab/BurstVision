@@ -149,6 +149,8 @@ class NetworkTraffic:
             number_of_bursts_in_flows = 0
             for flow in flows:
                 for flow_burst in flow.bursts:
+                    if flow_burst.real_timestamp > burst_duration[1]:
+                        break
                     if burst_duration[0] <= flow_burst.real_timestamp <= burst_duration[1] or \
                             burst_duration[0] <= flow_burst.real_timestamp + flow_burst.interval <= burst_duration[1]:
                         number_of_bursts_in_flows += 1
