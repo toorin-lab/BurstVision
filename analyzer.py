@@ -21,7 +21,7 @@ def plot_menu(plot_dict):
     print(blue_start + informational_message + blue_end)
     plot_keys = list(plot_dict.keys())
     menu_lines = []
-    items_per_line = 3
+    items_per_line = 2
 
     max_length = max(len(plot) for plot in plot_keys) + 4
 
@@ -46,17 +46,35 @@ def clear_screen():
 
 
 if __name__ == '__main__':
+    # parser = argparse.ArgumentParser(description='Example script with command-line arguments')
+    # parser.add_argument('--interval', type=int, default=100, help="microseconds")
+    # parser.add_argument('--avg_window_size', type=int, default=100000, help="microseconds")
+    # parser.add_argument('--min_burst_ratio', type=int, default=5, help="min burst ratio, default value is 5")
+    # parser.add_argument('--file', type=str, help="location to pcap file")
+    # parser.add_argument('--plots', nargs='+', type=str, default=[], help='List of plots to generate')
+    # parser.add_argument('--type', type=str, default="traffic_oriented")
+    # parser.add_argument('--heavy_rate_threshold', type=str, default=0, help="bytes/second")
+    # parser.add_argument('--min_heavy_duration', type=str, default=2000, help="millisecond")
+
     parser = argparse.ArgumentParser(description='Example script with command-line arguments')
-    parser.add_argument('--interval', type=int, default=100, help="microseconds")
-    parser.add_argument('--avg_window_size', type=int, default=100000, help="microseconds")
-    parser.add_argument('--min_burst_ratio', type=int, default=5, help="min burst ratio, default value is 5")
-    parser.add_argument('--file', type=str, help="location to pcap file")
-    parser.add_argument('--plots', nargs='+', type=str, default=[], help='List of plots to generate')
-    parser.add_argument('--type', type=str, default="traffic_oriented")
-    parser.add_argument('--heavy_rate_threshold', type=str, default=0, help="bytes/second")
-    parser.add_argument('--min_heavy_duration', type=str, default=2000, help="millisecond")
+    parser.add_argument('-r', type=int, default=100, help="processing resolution (microseconds)")
+    parser.add_argument('-a', type=int, default=100000, help="average window size (microseconds)")
+    parser.add_argument('-b', type=int, default=5, help="minimum burst ratio (default: 5)")
+    parser.add_argument('-f', type=str, help="pcap file (with microsecond time resolution)")
+    parser.add_argument('-m', type=str, help="processing mode:  traffic_oriented(default) or flow_oriented")
+    parser.add_argument('-ht', type=str, default=0, help="b rate threshold for heavy flows (bytes/second)")
+    parser.add_argument('-md', type=str, default=100, help="minimum duration of heavy flows (miliseconds, default:100)")
 
     args = parser.parse_args()
+    translated_args = argparse.Namespace()
+    translated_args.interval = args.r
+    translated_args.avg_window_size = args.a
+    translated_args.min_burst_ratio = args.b
+    translated_args.file = args.f
+    translated_args.type = args.m
+    translated_args.heavy_rate_threshold = args.ht
+    translated_args.min_heavy_duration = args.md
+    args = translated_args
     if not args.file:
         raise Exception("Please specify the file with --file")
     start_time = time.time()
@@ -75,19 +93,19 @@ if __name__ == '__main__':
         network_plot = PlotNetworkTraffic(network_traffic_object=network_traffic)
 
     plot_dict = {
-        "network_traffic": network_plot.plot_traffic_and_bursts,
-        "bursts_duration_cdf": network_plot.plot_bursts_duration_cdf,
-        "bursts_traffic_volume": network_plot.bursts_traffic_volume,
-        "bursts_ratio_cdf": network_plot.plot_bursts_ratio_cdf,
-        "bursts_packet_count_cdf": network_plot.plot_bursts_packet_count_cdf,
-        "bursts_avg_packet_size_cdf": network_plot.plot_bursts_avg_packet_size_cdf,
-        "inter_burst_duration_signal_cdf": network_plot.plot_inter_burst_duration_signal_cdf,
-        "plot_bursts_flow_count_cdf": network_plot.plot_bursts_flow_count_cdf,
-        "plot_bursts_in_each_flow_cdf": network_plot.plot_bursts_in_each_flow_cdf,
-        "plot_cdf_flow_duration_all": network_plot.plot_cdf_flow_duration_all,
-        "plot_cdf_flow_duration_heavy": network_plot.plot_cdf_flow_duration_heavy,
-        "plot_cdf_flow_duration_bursty": network_plot.plot_cdf_flow_duration_bursty,
-        "plot_cdf_number_of_concurrent_bursty_flows": network_plot.plot_cdf_number_of_concurrent_bursty_flows
+        "Traffic rate": network_plot.plot_traffic_and_bursts,
+        "Length of microbursts": network_plot.plot_bursts_duration_cdf,
+        "Traffic volume of microbursts": network_plot.bursts_traffic_volume,
+        "Burst ratio of microbursts": network_plot.plot_bursts_ratio_cdf,
+        "Number of packets in microbursts": network_plot.plot_bursts_packet_count_cdf,
+        "Average packet size of microbursts": network_plot.plot_bursts_avg_packet_size_cdf,
+        "Inter-burst interval": network_plot.plot_inter_burst_duration_signal_cdf,
+        "Number of flows in microbursts": network_plot.plot_bursts_flow_count_cdf,
+        "Number of microbursts in each flow": network_plot.plot_bursts_in_each_flow_cdf,
+        "Duration of flows": network_plot.plot_cdf_flow_duration_all,
+        "Duration of heavy flows": network_plot.plot_cdf_flow_duration_heavy,
+        "Duration of bursty flows": network_plot.plot_cdf_flow_duration_bursty,
+        "Number of concurrent bursty flows at each microburst": network_plot.plot_cdf_number_of_concurrent_bursty_flows
     }
     error_message = ""
 
@@ -112,8 +130,8 @@ if __name__ == '__main__':
             clear_screen()
             print(
                 f"Number of bursts: {len(flow_bursts) if args.type == 'flow_oriented' else len(network_traffic.bursts)}")
-            print(f"Number of bursty flows: {count_of_bursty_flows}")
             print(f"Number of flows: {len(network_traffic.flow_event.flows)}")
+            print(f"Number of bursty flows: {count_of_bursty_flows}")
             print(f"Number of heavy flows: {number_of_heavy_flows}")
             flows = network_traffic.heavy_flow_duration_dict.keys()
             input("\nPress Enter to return to the menu...")
@@ -129,5 +147,3 @@ if __name__ == '__main__':
             pass
         except Exception as ve:
             error_message = str(ve)
-    for plot in args.plots:
-        plot_dict[plot]()
