@@ -62,7 +62,7 @@ if __name__ == '__main__':
     parser.add_argument('-b', type=int, default=5, help="minimum burst ratio (default: 5)")
     parser.add_argument('-f', type=str, help="pcap file (with microsecond time resolution)")
     parser.add_argument('-m', type=str, help="processing mode:  traffic_oriented(default) or flow_oriented")
-    parser.add_argument('-ht', type=str, default=0, help="b rate threshold for heavy flows (bytes/second)")
+    parser.add_argument('-ht', type=str, default=0, help="rate threshold for heavy flows (bytes/second)")
     parser.add_argument('-md', type=str, default=100, help="minimum duration of heavy flows (miliseconds, default:100)")
 
     args = parser.parse_args()

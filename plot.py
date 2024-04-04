@@ -72,8 +72,8 @@ class PlotNetworkTraffic:
         plt.scatter(burst_timestamps, burst_sizes, color='red', label='Bursts')
         update_progress(4)
 
-        plt.xlabel('Time Interval (microseconds)')
-        plt.ylabel('Traffic Rate (Byte / second)')
+        plt.xlabel('Time (microseconds)')
+        plt.ylabel('Traffic Rate (Bytes / second)')
         plt.title('Traffic rate')
         plt.legend()
         plt.grid(True)
@@ -85,7 +85,7 @@ class PlotNetworkTraffic:
         sorted_outputs = np.sort(function_outputs)
         cumulative_probabilities = np.arange(1, len(sorted_outputs) + 1) / len(sorted_outputs)
         plt.figure(figsize=(10, 6))
-        plt.step(sorted_outputs, cumulative_probabilities, where='post', label=f'CDF of {function_name} {function_atr}')
+        plt.step(sorted_outputs, cumulative_probabilities, where='post')
         plt.title(title)
         plt.xlabel(f'{function_atr}')
         plt.ylabel('CDF')
@@ -140,7 +140,7 @@ class PlotNetworkTraffic:
             inter_burst_duration_signal = self.network_traffic._get_inter_burst_duration_signal(bursts=self.bursts)
         else:
             inter_burst_duration_signal = self.network_traffic.inter_burst_duration_signal
-        self.plot_cdf(inter_burst_duration_signal, 'Burst', 'Duration (microseconds)',
+        self.plot_cdf(inter_burst_duration_signal, 'Burst', 'Interval (microseconds)',
                       title="Inter-burst interval")
 
     def plot_bursts_flow_count_cdf(self):
@@ -167,7 +167,7 @@ class PlotNetworkTraffic:
         flow_burst_count = [self.network_traffic.flow_duration_dict[flow] for flow in
                             self.network_traffic.flow_duration_dict.keys()]
 
-        self.plot_cdf(flow_burst_count, 'Burst', 'Duration',
+        self.plot_cdf(flow_burst_count, 'Burst', 'Duration (microseconds)',
                       title="Duration of flows")
 
     def plot_cdf_flow_duration_heavy(self):
@@ -176,7 +176,7 @@ class PlotNetworkTraffic:
         flow_burst_count = [self.network_traffic.heavy_flow_duration_dict[flow] for flow in
                             self.network_traffic.heavy_flow_duration_dict.keys()]
 
-        self.plot_cdf(flow_burst_count, 'Burst', 'Duration',
+        self.plot_cdf(flow_burst_count, 'Burst', 'Duration (microseconds)',
                       title="Duration of heavy flows")
 
     def plot_cdf_flow_duration_bursty(self):
@@ -185,7 +185,7 @@ class PlotNetworkTraffic:
         flow_burst_count = [self.network_traffic.bursty_flow_duration_dict[flow] for flow in
                             self.network_traffic.bursty_flow_duration_dict.keys()]
 
-        self.plot_cdf(flow_burst_count, 'Burst', 'Duration',
+        self.plot_cdf(flow_burst_count, 'Burst', 'Duration (microseconds)',
                       title="Duration of bursty flows")
 
     def plot_cdf_number_of_concurrent_bursty_flows(self):
