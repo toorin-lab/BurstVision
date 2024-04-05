@@ -8,6 +8,18 @@ import pandas as pd
 import numpy as np
 from scapy.layers.inet import IP, TCP, UDP
 from scapy.layers.inet6 import IPv6
+import dask.dataframe as dd
+
+
+class CustomPacket:
+    def __init__(self, timestamp, wirelen, src_ip, dst_ip, src_port, dst_port, proto):
+        self.time = timestamp
+        self.wirelen = wirelen
+        self.src_ip = src_ip
+        self.dst_ip = dst_ip
+        self.src_port = src_port
+        self.dst_port = dst_port
+        self.proto = proto
 
 
 class FiveTuple:
@@ -92,12 +104,23 @@ class Burst:
 
 class NetworkTraffic:
     def __init__(self, pcap_file_location, interval, avg_window_size, min_burst_ratio, packets=None,
-                 heavy_rate_threshold=0):
+                 heavy_rate_threshold=0, reader_mode='pcap', csv_file_location=None):
+        self.reader_mode = reader_mode
         self.pcap_file_location = pcap_file_location
         self.index = {}
         self.print_status = True
         self.heavy_rate_threshold = heavy_rate_threshold
         self.duration = 0
+        if reader_mode == 'csv':
+            df = dd.read_csv(csv_file_location)
+            df = df.compute()
+            packets = []
+            for index, row in df.iterrows():
+                packet = CustomPacket(row['timestamp'], row['packetlength'], row['srcip'], row['dstip'], row['srcport'],
+                                      row['dstport'], row['ipprotocol'])
+                packets.append(packet)
+            self.packets = packets
+            self._analyze_csv_packets()
         if packets is None:
             self.packets = []
             self._read_packets_with_progress(packets)
@@ -162,12 +185,10 @@ class NetworkTraffic:
         all_five_tuples = []
         start = time.time()
         if self.print_status:
-
             print("\nExtracting 5 tuples", end="")
         for key, packets in self.index.items():
             src_ip, dst_ip, src_port, dst_port, proto = key
             for packet in packets:
-
                 five_tuple = FiveTuple(src_ip, dst_ip, src_port, dst_port, proto, (packet.time - self.start_time) * 1e6)
                 all_five_tuples.append(five_tuple)
                 self.flow_event.add_five_tuple(five_tuple)
@@ -183,6 +204,25 @@ class NetworkTraffic:
         else:
             if self.print_status:
                 print("\rReading packets...", end='', flush=True)
+
+    def _analyze_csv_packets(self):
+        if self.reader_mode != 'csv':
+            raise ValueError("Reader mode is not set to csv")
+        for packet in self.packets:
+            src_ip = packet.src_ip
+            dst_ip = packet.dst_ip
+            src_port = packet.src_port
+            dst_port = packet.dst_port
+            proto = packet.proto
+            key = (src_ip, dst_ip, src_port, dst_port, proto)
+            reverse_key = (dst_ip, src_ip, dst_port, src_port, proto)
+            if key in self.index.keys() or reverse_key in self.index:
+                if reverse_key in self.index.keys():
+                    self.index[reverse_key].append(packet)
+                else:
+                    self.index[key].append(packet)
+            else:
+                self.index[key] = [packet]
 
     def _read_packets_with_progress(self, packets=None):
         total_file_size = os.path.getsize(self.pcap_file_location)
