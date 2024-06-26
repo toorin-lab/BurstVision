@@ -46,21 +46,12 @@ def clear_screen():
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser(description='Example script with command-line arguments')
-    # parser.add_argument('--interval', type=int, default=100, help="microseconds")
-    # parser.add_argument('--avg_window_size', type=int, default=100000, help="microseconds")
-    # parser.add_argument('--min_burst_ratio', type=int, default=5, help="min burst ratio, default value is 5")
-    # parser.add_argument('--file', type=str, help="location to pcap file")
-    # parser.add_argument('--plots', nargs='+', type=str, default=[], help='List of plots to generate')
-    # parser.add_argument('--type', type=str, default="traffic_oriented")
-    # parser.add_argument('--heavy_rate_threshold', type=str, default=0, help="bytes/second")
-    # parser.add_argument('--min_heavy_duration', type=str, default=2000, help="millisecond")
-
     parser = argparse.ArgumentParser(description='Example script with command-line arguments')
     parser.add_argument('-r', type=int, default=100, help="processing resolution (microseconds)")
     parser.add_argument('-a', type=int, default=100000, help="average window size (microseconds)")
     parser.add_argument('-b', type=int, default=5, help="minimum burst ratio (default: 5)")
     parser.add_argument('-f', type=str, help="pcap file (with microsecond time resolution)")
+    parser.add_argument('-i', type=str, help="input type (choices: pcap, csv, default: pcap)")
     parser.add_argument('-m', type=str, help="processing mode:  traffic_oriented(default) or flow_oriented")
     parser.add_argument('-ht', type=str, default=0, help="rate threshold for heavy flows (bytes/second)")
     parser.add_argument('-md', type=str, default=100, help="minimum duration of heavy flows (miliseconds, default:100)")
@@ -74,12 +65,14 @@ if __name__ == '__main__':
     translated_args.type = args.m
     translated_args.heavy_rate_threshold = args.ht
     translated_args.min_heavy_duration = args.md
+    translated_args.input_type = args.i
     args = translated_args
     if not args.file:
         raise Exception("Please specify the file with --file")
     start_time = time.time()
     network_traffic = NetworkTraffic(pcap_file_location=args.file, interval=args.interval,
-                                     avg_window_size=args.avg_window_size, min_burst_ratio=args.min_burst_ratio)
+                                     avg_window_size=args.avg_window_size, min_burst_ratio=args.min_burst_ratio,
+                                     reader_mode=args.input_type, csv_file_location=args.file)
     flow_bursts = None
     count_of_bursty_flows = 0
     number_of_heavy_flows = 0
