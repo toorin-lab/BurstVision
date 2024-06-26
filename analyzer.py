@@ -46,16 +46,6 @@ def clear_screen():
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser(description='Example script with command-line arguments')
-    # parser.add_argument('--interval', type=int, default=100, help="microseconds")
-    # parser.add_argument('--avg_window_size', type=int, default=100000, help="microseconds")
-    # parser.add_argument('--min_burst_ratio', type=int, default=5, help="min burst ratio, default value is 5")
-    # parser.add_argument('--file', type=str, help="location to pcap file")
-    # parser.add_argument('--plots', nargs='+', type=str, default=[], help='List of plots to generate')
-    # parser.add_argument('--type', type=str, default="traffic_oriented")
-    # parser.add_argument('--heavy_rate_threshold', type=str, default=0, help="bytes/second")
-    # parser.add_argument('--min_heavy_duration', type=str, default=2000, help="millisecond")
-
     parser = argparse.ArgumentParser(description='Example script with command-line arguments')
     parser.add_argument('-r', type=int, default=100, help="processing resolution (microseconds)")
     parser.add_argument('-a', type=int, default=100000, help="average window size (microseconds)")

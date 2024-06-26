@@ -55,9 +55,6 @@ class FiveTuple:
             valid_five_tuples.extend(time_index[timestamp])
         return valid_five_tuples
 
-        # valid_five_tuples = [event for event in five_tuples if start_time <= event.timestamp <= end_time]
-        # return valid_five_tuples
-
 
 class FlowEvent:
     def __init__(self, five_tuples):
@@ -136,7 +133,6 @@ class NetworkTraffic:
         self.flow_event = FlowEvent([])
         self.five_tuples = self.extract_5_tuple()
         self.time_index = FiveTuple.create_time_index(self.five_tuples)
-        # self.flow_event = FlowEvent(self.five_tuples)
         self.bursts = self._get_bursts()
         self.inter_burst_duration_signal = self._get_inter_burst_duration_signal()
         self.flow_burst_counter = {}
@@ -367,7 +363,6 @@ class NetworkTraffic:
             else:
                 current_burst.interval = total_current_burst_count * self.interval
                 bursts.append(current_burst)
-                ############################
                 current_burst = bursts_point
                 sum_of_timestamps = bursts_point.timestamp
                 sum_of_burt_ratio = bursts_point.burst_ratio
