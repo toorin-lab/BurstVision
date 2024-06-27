@@ -57,6 +57,9 @@ This is the main file to run the program. It includes:
 - **Main Logic**: Initializes the `NetworkTraffic` class and handles user interaction for generating plots and viewing analysis results.
 - **Menu System**: Provides a user interface to select different plots and display network traffic information.
 
+### `plot.py`
+This file handles the plotting functionalities of the tool. 
+
 ## Flags and Parameters
 
 ### Flags for `analyzer.py`
