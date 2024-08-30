@@ -12,6 +12,9 @@ This project provides a tool for analyzing network traffic data, generating plot
 
 ## Detailed Architecture
 
+### Scapy library
+The tool leverages the Scapy library, a powerful Python-based network packet manipulation tool, to efficiently handle and analyze network traffic data. Scapy allows us to read packets from PCAP files and provides the flexibility to create, modify, and dissect packets at a very low level. This flexibility is essential for performing custom packet-level operations required for microburst detection and traffic analysis. By using Scapy, the tool can directly access packet headers, timestamps, and payloads, enabling a detailed examination of network flows and supporting both traffic-oriented and flow-oriented analyses.
+
 ### 1. `analyzer.py`
 
 This is the main entry point for the tool. It performs the following key tasks:
