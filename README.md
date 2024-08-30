@@ -11,6 +11,7 @@ This project is designed to analyze network traffic and detect microbursts. Micr
 - [Flags and Parameters](#flags-and-parameters)
 - [Analysis Modes](#analysis-modes)
 - [Types of Plots](#types-of-plots)
+- [Code Architecture](#code-architecture)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -168,6 +169,9 @@ The tool provides various plots to help visualize network traffic and burst char
 - **Duration of heavy flows**: Displays the CDF of the duration of heavy flows.
 - **Duration of bursty flows**: Plots the CDF of the duration of bursty flows.
 - **Number of concurrent bursty flows at each microburst**: Visualizes the CDF of the number of concurrent bursty flows during each burst.
+
+## Code Architecture
+For a detailed explanation of the software architecture, please refer to the [software_architecture.md](software_architecture.md) document.
 
 ## Contributing
 Contributions are welcome. Please fork the repository and submit a pull request with your changes.
