@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project provides a tool for analyzing network traffic data, generating plots, and visualizing key traffic metrics. The tool can operate in different modes (`traffic-oriented` or `flow-oriented`) and allows users to analyze network data by generating plots and summaries for various traffic characteristics.
+This project provides a tool for analyzing microbursts and its metrics. BurstVision can operate in different modes (`traffic-oriented` or `flow-oriented`) and allows users to analyze network data by generating plots and summaries for various traffic characteristics.
 
 ### Main Components
 
@@ -13,11 +13,11 @@ This project provides a tool for analyzing network traffic data, generating plot
 ## Detailed Architecture
 
 ### Scapy library
-The tool leverages the Scapy library, a powerful Python-based network packet manipulation tool, to efficiently handle and analyze network traffic data. Scapy allows us to read packets from PCAP files and provides the flexibility to create, modify, and dissect packets at a very low level. This flexibility is essential for performing custom packet-level operations required for microburst detection and traffic analysis. By using Scapy, the tool can directly access packet headers, timestamps, and payloads, enabling a detailed examination of network flows and supporting both traffic-oriented and flow-oriented analyses.
+BurstVision leverages the Scapy library, a powerful Python-based network packet manipulation tool, to efficiently handle and analyze network traffic data. Scapy allows us to read packets from PCAP files and provides the flexibility to create, modify, and dissect packets at a very low level. This flexibility is essential for performing custom packet-level operations required for microburst detection and traffic analysis. By using Scapy, BurstVision can directly access packet headers, timestamps, and payloads, enabling a detailed examination of network flows and supporting both traffic-oriented and flow-oriented analyses.
 
 ### 1. `analyzer.py`
 
-This is the main entry point for the tool. It performs the following key tasks:
+This is the main entry point for BurstVision. It performs the following key tasks:
 
 - **Argument Parsing**: Uses `argparse` to handle command-line arguments, which specify input files, processing modes, and other parameters.
 - **Menu Handling**: Provides an interactive menu (`plot_menu`) for the user to select different plotting options or view network traffic summaries.
@@ -28,7 +28,7 @@ This is the main entry point for the tool. It performs the following key tasks:
 - **`plot_menu(plot_dict)`**: Displays an interactive menu for users to select different plotting options.
 - **`clear_screen()`**: Clears the console screen.
 - **Main Program Execution**:
-  - Parses command-line arguments to set the tool's parameters.
+  - Parses command-line arguments to set BurstVision's parameters.
   - Initializes the `NetworkTraffic` object for data analysis.
   - Uses a loop to display the menu, handle user choices, and generate the requested plots.
 
@@ -57,7 +57,7 @@ This file contains the core logic for processing network traffic data. It define
 
 - **`extract_5_tuple()`**: This function extracts all five-tuples from the network traffic data, which are used to identify unique network flows.
 
-- **CSV Support**: The tool also supports reading traffic data from CSV files.
+- **CSV Support**: BurstVision also supports reading traffic data from CSV files.
   - **`_analyze_csv_packets()`**: This function reads and processes network traffic data from a CSV file format.
 
 - **Traffic Rate Signal Calculation**:
