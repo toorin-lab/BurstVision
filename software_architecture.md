@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project provides a tool for analyzing microbursts and its metrics. BurstVision can operate in different modes (`traffic-oriented` or `flow-oriented`) and allows users to analyze network data by generating plots and summaries for various traffic characteristics.
+This project provides a tool for analyzing microbursts and their associated metrics. BurstVision can operate in different modes (`traffic-oriented` or `flow-oriented`) and allows users to analyze network data by generating plots and summaries for various traffic characteristics.
 
 ### Main Components
 
