@@ -1,7 +1,8 @@
 
-# Microburst Analysis Tool
+# BurstVision: Microburst Analysis Tool
 
 This project is designed to analyze network traffic and detect microbursts. Microbursts are short, intense bursts of data traffic that can significantly impact network performance. This tool identifies and analyzes these bursts to provide insights into network behavior.
+This is the source code of our paper entitled **"BurstVision: Uncovering Secrets of Microbursts in Datacenter Network Traffic"** that has been published in **CNSM'24**.
 
 ## Table of Contents
 - [Features](#features)
