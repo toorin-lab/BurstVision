@@ -49,7 +49,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Example script with command-line arguments')
     parser.add_argument('-r', type=int, default=100, help="processing resolution (microseconds)")
     parser.add_argument('-a', type=int, default=100000, help="average window size (microseconds)")
-    parser.add_argument('-b', type=int, default=5, help="minimum burst ratio (default: 5)")
+    parser.add_argument('-b', type=int, default=5, help="burst threshold ( mbps )")
     parser.add_argument('-f', type=str, help="pcap file (with microsecond time resolution)")
     parser.add_argument('-i', type=str, help="input type (choices: pcap, csv, default: pcap)")
     parser.add_argument('-m', type=str, help="processing mode:  traffic_oriented(default) or flow_oriented")
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     translated_args = argparse.Namespace()
     translated_args.interval = args.r
     translated_args.avg_window_size = args.a
-    translated_args.min_burst_ratio = args.b
+    translated_args.burst_threshold = args.b
     translated_args.file = args.f
     translated_args.type = args.m
     translated_args.heavy_rate_threshold = args.ht
@@ -71,7 +71,7 @@ if __name__ == '__main__':
         raise Exception("Please specify the file with --file")
     start_time = time.time()
     network_traffic = NetworkTraffic(pcap_file_location=args.file, interval=args.interval,
-                                     avg_window_size=args.avg_window_size, min_burst_ratio=args.min_burst_ratio,
+                                     avg_window_size=args.avg_window_size, burst_threshold=args.burst_threshold / 8 * 1024 * 1024,
                                      reader_mode=args.input_type, csv_file_location=args.file)
     flow_bursts = None
     count_of_bursty_flows = 0

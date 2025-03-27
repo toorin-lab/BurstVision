@@ -1,7 +1,4 @@
 import bisect
-import time
-
-import numpy
 from scapy.all import *
 from utils import progress_decorator
 import pandas as pd
@@ -9,6 +6,8 @@ import numpy as np
 from scapy.layers.inet import IP, TCP, UDP
 from scapy.layers.inet6 import IPv6
 import dask.dataframe as dd
+import warnings
+warnings.filterwarnings('ignore')
 
 
 class CustomPacket:
@@ -100,7 +99,7 @@ class Burst:
 
 
 class NetworkTraffic:
-    def __init__(self, pcap_file_location, interval, avg_window_size, min_burst_ratio, packets=None,
+    def __init__(self, pcap_file_location, interval, avg_window_size, burst_threshold, packets=None,
                  heavy_rate_threshold=0, reader_mode='pcap', csv_file_location=None):
         self.reader_mode = reader_mode
         self.pcap_file_location = pcap_file_location
@@ -129,7 +128,7 @@ class NetworkTraffic:
         self.avg_window_size = avg_window_size
         self.traffic_rate_signal = self._get_traffic_rate_signal()
         self.avg_rate_signal = self._get_traffic_avg_rate_signal()
-        self.min_burst_ratio = min_burst_ratio
+        self.burst_threshold = burst_threshold
         self.flow_event = FlowEvent([])
         self.five_tuples = self.extract_5_tuple()
         self.time_index = FiveTuple.create_time_index(self.five_tuples)
@@ -149,7 +148,7 @@ class NetworkTraffic:
         for flow in self.index.keys():
             flow_network_traffic = NetworkTraffic(pcap_file_location=self.pcap_file_location, interval=self.interval,
                                                   avg_window_size=self.avg_window_size,
-                                                  min_burst_ratio=self.min_burst_ratio,
+                                                  burst_threshold=self.burst_threshold,
                                                   packets=self.index[flow], heavy_rate_threshold=heavy_rate_threshold)
             flows.append(flow_network_traffic)
             if flow_network_traffic.is_heavy_flow and flow_network_traffic.duration > min_heavy_duration / 1000:
@@ -383,7 +382,7 @@ class NetworkTraffic:
     def get_burst_points(self):
         traffic_rate_signal = self.traffic_rate_signal
         avg_traffic_signal = self.avg_rate_signal
-        is_burst = traffic_rate_signal['Rate'] > (self.min_burst_ratio * avg_traffic_signal)
+        is_burst = traffic_rate_signal['Rate'] - avg_traffic_signal > self.burst_threshold
         burst_traffic = self.traffic_rate_signal[is_burst]
         burst_traffic_total = burst_traffic.groupby('Interval')['Size'].sum().fillna(0)
 
