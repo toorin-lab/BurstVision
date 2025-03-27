@@ -115,7 +115,7 @@ Burst points are identified where the traffic rate exceeds the minimum burst rat
 - **Burst Condition**: A burst is identified if:
   
 $$
-\text{Traffic Rate} > (\text{Min Burst Ratio} \times \text{Average Traffic Rate})
+\text{Traffic Rate} - \text{Average Traffic Rate} > \text{Burst Threshold}
 $$
 
 
