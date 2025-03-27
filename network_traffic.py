@@ -297,21 +297,40 @@ class NetworkTraffic:
             'Timestamp': timestamps
         })
         update_progress(1, self)
+        
+        # Sort timestamps and calculate durations between consecutive packets
+        df = df.sort_values('Timestamp')
+        df['duration'] = df['Timestamp'].diff() * 1e6  # Convert to microseconds
+        
         df['Elapsed'] = (df['Timestamp'] - start_time) * 1e6
         df['Interval'] = (df['Elapsed'] // self.interval).astype(int)
+        
+        # Group by interval and get sum of durations
+        duration_sum = df.groupby('Interval')['duration'].sum()
         traffic_summary = df.groupby('Interval')['Size'].sum()
 
         update_progress(2, self)
         max_interval = int((end_time - start_time) * 1e6 // self.interval)
         all_intervals = pd.DataFrame({'Interval': range(max_interval + 1)})
         update_progress(3, self)
+        
         traffic_summary = all_intervals.merge(traffic_summary, on='Interval', how='left')
         traffic_summary['Size'].fillna(0, inplace=True)
 
-        # Convert rate from bytes/microsecond to bytes/second
-        traffic_summary['Rate'] = (traffic_summary['Size'] / self.interval) * 1e6  # Multiply by 1,000,000
+        # Add count and duration information
         traffic_summary['Count'] = df.groupby('Interval').size()
         traffic_summary['Count'].fillna(0, inplace=True)
+        traffic_summary['duration_sum'] = duration_sum
+        traffic_summary['duration_sum'].fillna(0, inplace=True)
+        
+        # Calculate average duration between packets (handle edge cases)
+        traffic_summary['avg_duration'] = traffic_summary.apply(
+            lambda row: row['duration_sum'] / (row['Count'] - 1) if row['Count'] > 1 else 0,
+            axis=1
+        )
+
+        # Convert rate from bytes/microsecond to bytes/second
+        traffic_summary['Rate'] = (traffic_summary['Size'] / self.interval) * 1e6
         real_timestamps = all_intervals['Interval'] * self.interval + start_time * 1e6
         traffic_summary['Timestamp'] = real_timestamps
         update_progress(4, self)
