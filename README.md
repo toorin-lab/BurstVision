@@ -67,7 +67,7 @@ This file handles the plotting functionalities of the tool.
 ### Flags for `analyzer.py`
 - `-r`: Processing resolution in microseconds (default: 100).
 - `-a`: Average window size in microseconds (default: 100000).
-- `-b`: Minimum burst ratio (default: 5).
+- `-b`: Burst threshold ( mbps ).
 - `-f`: Path to the PCAP or CSV file.
 - `-i`: Input type (`pcap` or `csv`, default: `pcap`).
 - `-m`: Processing mode (`traffic_oriented` or `flow_oriented`).
