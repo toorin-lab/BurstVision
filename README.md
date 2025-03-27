@@ -76,7 +76,7 @@ This file handles the plotting functionalities of the tool.
 
 ### Example Command
 ```sh
-python analyzer.py -r 200 -b 5 -f test.pcap -m flow_oriented
+python analyzer.py -r 200 -b 1000 -f test.pcap -m flow_oriented
 ```
 
 ## Analysis Modes
