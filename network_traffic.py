@@ -255,31 +255,90 @@ class NetworkTraffic:
                     self.index[key] = [packet]
 
     def _read_packets_with_progress(self, packets=None):
+        """Read PCAP file efficiently in binary mode"""
+        if packets is not None:
+            return self._process_provided_packets(packets)
+
         total_file_size = os.path.getsize(self.pcap_file_location)
-        processed_size = 0
         packet_count = 0
         start_time = time.time()
-        progress = 0
-        read_from_file = False
-        if packets is None:
-            read_from_file = True
-            packets = PcapReader(self.pcap_file_location)
-        for packet in packets:
-            if read_from_file:
-                self.packets.append(packet)
-            self._create_index_for_five_tuples(packet=packet)
-            packet_count += 1
-            processed_size += packet.wirelen
-            new_progress = (processed_size / total_file_size) * 100
-            if new_progress - progress >= 1:
-                progress = new_progress
-                if self.print_status:
-                    print(f"\rReading packets: {progress:.0f}% ({time.time() - start_time:.2f}s)", end='', flush=True)
-        if read_from_file:
-            packets.close()
+        
+        GLOBAL_HEADER_SIZE = 24
+        PACKET_HEADER_SIZE = 16
+        
+        with open(self.pcap_file_location, 'rb') as f:
+            # Read and verify magic number
+            magic_num = int.from_bytes(f.read(4), 'little')
+            byte_order = 'little'
+            time_divisor = 1_000_000  # default microseconds 
+            # Check magic number and format
+            if magic_num == 0xa1b2c3d4:  # Little-endian
+                pass
+            elif magic_num == 0xd4c3b2a1:  # Big-endian
+                byte_order = 'big'
+            elif magic_num == 0xa1b23c4d:  # Little-endian nanosecond
+                time_divisor = 1_000_000_000
+            elif magic_num == 0x4d3cb2a1:  # Big-endian nanosecond
+                byte_order = 'big'
+                time_divisor = 1_000_000_000
+            else:
+                raise ValueError(f"Unknown PCAP format: {hex(magic_num)}")
+            f.seek(GLOBAL_HEADER_SIZE)
+            timestamps = []
+            sizes = []
+            while True:
+                header = f.read(PACKET_HEADER_SIZE)
+                if len(header) < PACKET_HEADER_SIZE:
+                    break
+                ts_sec = int.from_bytes(header[0:4], byte_order)
+                ts_usec = int.from_bytes(header[4:8], byte_order)
+                timestamp = ts_sec + (ts_usec / time_divisor)
+                caplen = int.from_bytes(header[8:12], byte_order)
+                wirelen = int.from_bytes(header[12:16], byte_order)
+                f.seek(caplen, 1)                
+                timestamps.append(timestamp)
+                sizes.append(wirelen)
+                
+                packet_count += 1
+                
+                # Update progress
+                if self.print_status and packet_count % 10000 == 0:
+                    progress = (f.tell() / total_file_size) * 100
+                    elapsed = time.time() - start_time
+                    print(f"\rReading packets: {progress:.0f}% ({elapsed:.2f}s)", end='', flush=True)
+        
         if self.print_status:
-            print()
-            print(f"number of packets {packet_count}")
+            print(f"\nProcessed {packet_count:,} packets")
+        
+        self.packets = [
+            CustomPacket(
+                timestamp=ts,
+                wirelen=size,
+                src_ip=None,    
+                dst_ip=None,
+                src_port=None,
+                dst_port=None,
+                proto=None
+            )
+            for ts, size in zip(timestamps, sizes)
+        ]
+
+    def _process_provided_packets(self, packets):
+        """Handle pre-provided packets"""
+        self.packets = []
+        packet_count = 0
+        start_time = time.time()
+        
+        for packet in packets:
+            self.packets.append(packet)
+            packet_count += 1
+            
+            if self.print_status and packet_count % 10000 == 0:
+                elapsed = time.time() - start_time
+                print(f"\rProcessed {packet_count:,} packets ({elapsed:.2f}s)", end='', flush=True)
+        
+        if self.print_status:
+            print(f"\nProcessed {packet_count:,} packets")
 
     @progress_decorator(total_steps=4)
     def _get_traffic_rate_signal(self, update_progress):
@@ -410,7 +469,6 @@ class NetworkTraffic:
         is_burst = traffic_rate_signal['Rate'] - avg_traffic_signal > self.burst_threshold
         burst_traffic = self.traffic_rate_signal[is_burst]
         burst_traffic_total = burst_traffic.groupby('Interval')['Size'].sum().fillna(0)
-
         burst_avg = self.avg_rate_signal[is_burst]
         burst_ratio = np.where(burst_avg != 0, burst_traffic['Rate'] / burst_avg, np.inf)
         bursts_points = np.array(
