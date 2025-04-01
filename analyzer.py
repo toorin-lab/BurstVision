@@ -73,9 +73,10 @@ def main():
     if not args.file:
         raise Exception("Please specify the file with --file")
     start_time = time.time()
+    csv_output_mode = args.output is not None
     network_traffic = NetworkTraffic(pcap_file_location=args.file, interval=args.interval,
                                      avg_window_size=args.avg_window_size, burst_threshold=args.burst_threshold / 8 * 1024 * 1024,
-                                     reader_mode=args.input_type, csv_file_location=args.file)
+                                     reader_mode=args.input_type, csv_file_location=args.file, csv_output_mode=csv_output_mode)
     flow_bursts = None
     count_of_bursty_flows = 0
     number_of_heavy_flows = 0

@@ -100,9 +100,10 @@ class Burst:
 
 class NetworkTraffic:
     def __init__(self, pcap_file_location, interval, avg_window_size, burst_threshold, packets=None,
-                 heavy_rate_threshold=0, reader_mode='pcap', csv_file_location=None):
+                 heavy_rate_threshold=0, reader_mode='pcap', csv_file_location=None, csv_output_mode=False):
         self.reader_mode = reader_mode
         self.pcap_file_location = pcap_file_location
+        self.csv_output_mode = csv_output_mode
         self.index = {}
         self.print_status = True
         self.heavy_rate_threshold = heavy_rate_threshold
@@ -129,9 +130,10 @@ class NetworkTraffic:
         self.traffic_rate_signal = self._get_traffic_rate_signal()
         self.avg_rate_signal = self._get_traffic_avg_rate_signal()
         self.burst_threshold = burst_threshold
-        self.flow_event = FlowEvent([])
-        self.five_tuples = self.extract_5_tuple()
-        self.time_index = FiveTuple.create_time_index(self.five_tuples)
+        if not self.csv_output_mode:
+            self.flow_event = FlowEvent([])
+            self.five_tuples = self.extract_5_tuple()
+            self.time_index = FiveTuple.create_time_index(self.five_tuples)
         self.bursts = self._get_bursts()
         self.inter_burst_duration_signal = self._get_inter_burst_duration_signal()
         self.flow_burst_counter = {}
@@ -219,19 +221,8 @@ class NetworkTraffic:
             else:
                 self.index[key] = [packet]
 
-    def _read_packets_with_progress(self, packets=None):
-        total_file_size = os.path.getsize(self.pcap_file_location)
-        processed_size = 0
-        packet_count = 0
-        start_time = time.time()
-        progress = 0
-        read_from_file = False
-        if packets is None:
-            read_from_file = True
-            packets = PcapReader(self.pcap_file_location)
-        for packet in packets:
-            if read_from_file:
-                self.packets.append(packet)
+    def _create_index_for_five_tuples(self, packet):
+        if not self.csv_output_mode:
             if IP in packet and (TCP in packet or UDP in packet):
                 src_ip = packet[IP].src
                 dst_ip = packet[IP].dst
@@ -262,6 +253,21 @@ class NetworkTraffic:
                         self.index[key].append(packet)
                 else:
                     self.index[key] = [packet]
+
+    def _read_packets_with_progress(self, packets=None):
+        total_file_size = os.path.getsize(self.pcap_file_location)
+        processed_size = 0
+        packet_count = 0
+        start_time = time.time()
+        progress = 0
+        read_from_file = False
+        if packets is None:
+            read_from_file = True
+            packets = PcapReader(self.pcap_file_location)
+        for packet in packets:
+            if read_from_file:
+                self.packets.append(packet)
+            self._create_index_for_five_tuples(packet=packet)
             packet_count += 1
             processed_size += packet.wirelen
             new_progress = (processed_size / total_file_size) * 100
@@ -420,23 +426,25 @@ class NetworkTraffic:
         bursts_points = self.get_burst_points()
         update_progress(1, self)
         bursts = self.get_continuous_bursts(bursts_points)
-        for burst in bursts:
-            five_tuples = FiveTuple.get_five_tuples_in_time_range(self.time_index, burst.timestamp,
-                                                                  burst.timestamp + burst.interval)
+        if not self.csv_output_mode:
+            for burst in bursts:
+                five_tuples = FiveTuple.get_five_tuples_in_time_range(self.time_index, burst.timestamp,
+                                                                    burst.timestamp + burst.interval)
 
-            flow_event = FlowEvent(five_tuples)
-            burst.number_of_flows = len(flow_event.flows)
-
+                flow_event = FlowEvent(five_tuples)
+                burst.number_of_flows = len(flow_event.flows)
         update_progress(2, self)
         return bursts
 
     def _get_inter_burst_duration_signal(self, bursts=None):
-        if bursts is None:
-            bursts = self.bursts
-        else:
-            bursts = sorted(bursts, key=lambda burst: burst.timestamp)
-        inter_burst_duration = []
-        for i in range(len(bursts) - 1):
-            inter_burst_duration.append(
-                bursts[i + 1].timestamp - bursts[i].timestamp + bursts[i].interval)
-        return inter_burst_duration
+        if not self.csv_output_mode:
+            if bursts is None:
+                bursts = self.bursts
+            else:
+                bursts = sorted(bursts, key=lambda burst: burst.timestamp)
+            inter_burst_duration = []
+            for i in range(len(bursts) - 1):
+                inter_burst_duration.append(
+                    bursts[i + 1].timestamp - bursts[i].timestamp + bursts[i].interval)
+            return inter_burst_duration
+        return None
