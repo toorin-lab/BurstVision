@@ -254,7 +254,7 @@ class NetworkTraffic:
                 else:
                     self.index[key] = [packet]
 
-    def _read_packets_with_progress(self, packets=None):
+    def _read_packets_with_progress(self, packets=None, start_from=1_000_000, number_of_packets=1_000_000):
         """Read PCAP file efficiently in binary mode"""
         if packets is not None:
             return self._process_provided_packets(packets)
@@ -286,7 +286,10 @@ class NetworkTraffic:
             f.seek(GLOBAL_HEADER_SIZE)
             timestamps = []
             sizes = []
-            while True:
+            counter = 0
+            index = 0
+            while index < number_of_packets if number_of_packets is not None else True:
+                counter += 1
                 header = f.read(PACKET_HEADER_SIZE)
                 if len(header) < PACKET_HEADER_SIZE:
                     break
@@ -296,8 +299,10 @@ class NetworkTraffic:
                 caplen = int.from_bytes(header[8:12], byte_order)
                 wirelen = int.from_bytes(header[12:16], byte_order)
                 f.seek(caplen, 1)                
-                timestamps.append(timestamp)
-                sizes.append(wirelen)
+                if counter >= start_from:
+                    index += 1
+                    timestamps.append(timestamp)
+                    sizes.append(wirelen)
                 
                 packet_count += 1
                 
