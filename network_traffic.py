@@ -108,6 +108,7 @@ class NetworkTraffic:
         self.print_status = True
         self.heavy_rate_threshold = heavy_rate_threshold
         self.duration = 0
+        self.five_tuple_count_per_interval = []
         if reader_mode == 'csv':
             df = dd.read_csv(csv_file_location)
             df = df.compute()
@@ -265,6 +266,9 @@ class NetworkTraffic:
         
         GLOBAL_HEADER_SIZE = 24
         PACKET_HEADER_SIZE = 16
+        ETH_HEADER_SIZE = 14  # Ethernet header size
+        IP_HEADER_SIZE = 20   # Minimum IP header size
+        TCP_HEADER_SIZE = 20  # Minimum TCP header size
         
         with open(self.pcap_file_location, 'rb') as f:
             # Read and verify magic number
@@ -298,8 +302,30 @@ class NetworkTraffic:
                 timestamp = ts_sec + (ts_usec / time_divisor)
                 caplen = int.from_bytes(header[8:12], byte_order)
                 wirelen = int.from_bytes(header[12:16], byte_order)
-                f.seek(caplen, 1)                
+                packet_data = f.read(caplen)
                 if counter >= start_from:
+                    # in here we should use packet_data to extract 5 tuple
+                    try:
+                        eth_header = packet_data[:ETH_HEADER_SIZE]
+                        ip_header = packet_data[ETH_HEADER_SIZE:ETH_HEADER_SIZE+IP_HEADER_SIZE]
+                        proto = ip_header[9]  # Protocol field in IP header
+                        src_ip = ".".join(map(str, ip_header[12:16]))  # Source IP
+                        dst_ip = ".".join(map(str, ip_header[16:20]))  # Destination IP
+                        
+                        if proto == 6 or proto == 17:  # TCP or UDP
+                            transport_header = packet_data[ETH_HEADER_SIZE+IP_HEADER_SIZE:]
+                            src_port = int.from_bytes(transport_header[:2], 'big')
+                            dst_port = int.from_bytes(transport_header[2:4], 'big')
+                        else:
+                            src_port = None
+                            dst_port = None
+                    except:
+                        src_ip = None
+                        dst_ip = None
+                        src_port = None
+                        dst_port = None
+                        proto = None
+                    five_tuple = (src_ip, dst_ip, src_port, dst_port, proto)
                     index += 1
                     timestamps.append(timestamp)
                     sizes.append(wirelen)
