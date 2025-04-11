@@ -19,7 +19,7 @@ def write_to_csv(network_traffic, output_file, batch_size=10000):
     
     # Write header first
     columns = ['traffic_rate', 'num_packets', 'avg_packet_size', 'avg_traffic_rate',
-               'avg_duration_between_packets', 'timestamp', 'is_burst']
+               'avg_duration_between_packets','flow_count', 'new_flow_count','syn_count' ,'timestamp', 'is_burst']
     
     with open(output_file, 'w') as f:
         # Write header
@@ -36,12 +36,19 @@ def write_to_csv(network_traffic, output_file, batch_size=10000):
         batch_data = []
         for idx in range(start_idx, end_idx):
             row = traffic_signal.iloc[idx]
+            interval_idx = int(row['Interval'])
+            flow_count = network_traffic.five_tuple_count_per_interval[interval_idx]
+            new_five_tuples_count = network_traffic.new_five_tuples[interval_idx]
+            count_of_syn = network_traffic.number_of_syn_packets[interval_idx]
             interval_data = {
                 'traffic_rate': row['Rate'],
                 'num_packets': row['Count'],
                 'avg_packet_size': row['Size'] / row['Count'] if row['Count'] > 0 else 0,
                 'avg_traffic_rate': avg_signal[idx],
                 'avg_duration_between_packets': row['avg_duration'] if row['Count'] > 1 else 0,
+                'flow_count': flow_count,
+                'new_flow_count':new_five_tuples_count,
+                'syn_count': count_of_syn,
                 'timestamp': row['Timestamp'],
                 'is_burst': burst_intervals.get(row['Interval'], 0),
             }
