@@ -56,27 +56,50 @@ class PlotNetworkTraffic:
 
         update_progress(1)
 
-        plt.figure(figsize=(12, 6))
-
-        # Plot traffic rate
-        plt.plot(self.network_traffic.traffic_rate_signal['Interval'] * self.network_traffic.interval,
-                 self.network_traffic.traffic_rate_signal['Rate'], label='Traffic Rate', alpha=0.7)
+        # Create figure with 4 subplots
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(14, 12), sharex=True)
+        
+        # Main traffic plot
+        ax1.plot(self.network_traffic.traffic_rate_signal['Interval'] * self.network_traffic.interval,
+                self.network_traffic.traffic_rate_signal['Rate'], label='Traffic Rate', alpha=0.7)
+        ax1.plot(self.network_traffic.traffic_rate_signal['Interval'] * self.network_traffic.interval,
+                self.network_traffic.avg_rate_signal, label='Average Traffic Rate', color='green', alpha=0.7)
+        ax1.scatter(burst_timestamps, burst_sizes, color='red', label='Bursts')
+        ax1.set_ylabel('Traffic Rate (Bytes/s)')
+        ax1.set_title('Traffic Rate with Bursts')
+        ax1.legend()
+        ax1.grid(True)
         update_progress(2)
 
-        # Plot average traffic rate
-        plt.plot(self.network_traffic.traffic_rate_signal['Interval'] * self.network_traffic.interval,
-                 self.network_traffic.avg_rate_signal, label='Average Traffic Rate', color='green', alpha=0.7)
+        # Five tuple count per interval
+        intervals = self.network_traffic.traffic_rate_signal['Interval'] * self.network_traffic.interval
+        ax2.plot(intervals, self.network_traffic.five_tuple_count_per_interval[:len(intervals)], 
+                color='purple', label='Active Flows')
+        ax2.set_ylabel('Flow Count')
+        ax2.set_title('Number of Active Flows per Interval')
+        ax2.legend()
+        ax2.grid(True)
         update_progress(3)
 
-        # Plot bursts
-        plt.scatter(burst_timestamps, burst_sizes, color='red', label='Bursts')
+        # New five tuples
+        ax3.plot(intervals, self.network_traffic.new_five_tuples[:len(intervals)], 
+                color='orange', label='New Flows')
+        ax3.set_ylabel('New Flow Count')
+        ax3.set_title('Number of New Flows per Interval')
+        ax3.legend()
+        ax3.grid(True)
         update_progress(4)
 
-        plt.xlabel('Time (microseconds)')
-        plt.ylabel('Traffic Rate (Bytes / second)')
-        plt.title('Traffic rate')
-        plt.legend()
-        plt.grid(True)
+        # SYN packets
+        ax4.plot(intervals, self.network_traffic.number_of_syn_packets[:len(intervals)], 
+                color='blue', label='SYN Packets')
+        ax4.set_xlabel('Time (microseconds)')
+        ax4.set_ylabel('SYN Count')
+        ax4.set_title('Number of SYN Packets per Interval')
+        ax4.legend()
+        ax4.grid(True)
+
+        plt.tight_layout()
         plt.show()
         update_progress(5)
 

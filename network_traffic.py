@@ -108,7 +108,11 @@ class NetworkTraffic:
         self.print_status = True
         self.heavy_rate_threshold = heavy_rate_threshold
         self.duration = 0
-        self.five_tuple_count_per_interval = []
+        self.interval = interval
+        self.five_tuple_count_per_interval = np.zeros(70_000_000, dtype=np.float64)
+        self.new_five_tuples = np.zeros(70_000_000, dtype=np.float64)
+        self.number_of_syn_packets = np.zeros(70_000_000, dtype=np.float64)
+        self.five_tuple_lookup = {}
         if reader_mode == 'csv':
             df = dd.read_csv(csv_file_location)
             df = df.compute()
@@ -126,7 +130,6 @@ class NetworkTraffic:
             self.is_heavy_flow = False
             self.packets = packets
             self.print_status = False
-        self.interval = interval
         self.avg_window_size = avg_window_size
         self.traffic_rate_signal = self._get_traffic_rate_signal()
         self.avg_rate_signal = self._get_traffic_avg_rate_signal()
@@ -255,7 +258,7 @@ class NetworkTraffic:
                 else:
                     self.index[key] = [packet]
 
-    def _read_packets_with_progress(self, packets=None, start_from=1_000_000, number_of_packets=1_000_000):
+    def _read_packets_with_progress(self, packets=None, start_from=16_000_000, number_of_packets=2_000_000):
         """Read PCAP file efficiently in binary mode"""
         if packets is not None:
             return self._process_provided_packets(packets)
@@ -292,6 +295,9 @@ class NetworkTraffic:
             sizes = []
             counter = 0
             index = 0
+            prev_interval = None
+            packet_start_time = None
+            current_flow_set = set()
             while index < number_of_packets if number_of_packets is not None else True:
                 counter += 1
                 header = f.read(PACKET_HEADER_SIZE)
@@ -305,6 +311,9 @@ class NetworkTraffic:
                 packet_data = f.read(caplen)
                 if counter >= start_from:
                     # in here we should use packet_data to extract 5 tuple
+                    if packet_start_time is None:
+                        packet_start_time = timestamp
+                    current_interval = (int((timestamp - packet_start_time) * 1e6) // self.interval)
                     try:
                         eth_header = packet_data[:ETH_HEADER_SIZE]
                         ip_header = packet_data[ETH_HEADER_SIZE:ETH_HEADER_SIZE+IP_HEADER_SIZE]
@@ -314,6 +323,12 @@ class NetworkTraffic:
                         
                         if proto == 6 or proto == 17:  # TCP or UDP
                             transport_header = packet_data[ETH_HEADER_SIZE+IP_HEADER_SIZE:]
+                            if proto == 6:
+                                if len(transport_header) >= 14:  # Need at least 14 bytes for flags
+                                    tcp_flags = transport_header[13]
+                                    syn_flag = (tcp_flags & 0x02) != 0  # SYN flag is bit 1 (0x02)
+                                    if syn_flag:
+                                        self.number_of_syn_packets[current_interval] += 1
                             src_port = int.from_bytes(transport_header[:2], 'big')
                             dst_port = int.from_bytes(transport_header[2:4], 'big')
                         else:
@@ -325,7 +340,26 @@ class NetworkTraffic:
                         src_port = None
                         dst_port = None
                         proto = None
+                    
                     five_tuple = (src_ip, dst_ip, src_port, dst_port, proto)
+                    reverse_five_tuple = (dst_ip, src_ip, dst_port, src_port, proto)
+                    # Initialize flow set if first packet in interval
+                    if prev_interval is None or current_interval != prev_interval:
+                        if prev_interval is not None:  # Only store if not first interval
+                            self.five_tuple_count_per_interval[prev_interval] = len(current_flow_set)
+                        current_flow_set = set()
+                        prev_interval = current_interval
+                    
+                    # Only add valid five tuples (skip None values)
+                    if None not in (src_ip, dst_ip, src_port, dst_port, proto):
+                        if reverse_five_tuple not in current_flow_set: 
+                            current_flow_set.add(five_tuple)
+                        if self.five_tuple_lookup.get(five_tuple, None) is None:
+                            self.new_five_tuples[current_interval] += 1
+                            self.five_tuple_lookup[five_tuple] = index
+                            self.five_tuple_lookup[reverse_five_tuple] = index
+                        self.five_tuple_lookup
+
                     index += 1
                     timestamps.append(timestamp)
                     sizes.append(wirelen)
