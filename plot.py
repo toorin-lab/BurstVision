@@ -46,7 +46,7 @@ class PlotNetworkTraffic:
         plt.show()
         update_progress(2)
 
-    @progress_decorator(total_steps=5)
+    @progress_decorator(total_steps=7)  # Increased total steps to 7
     def plot_traffic_and_bursts(self, update_progress):
         # Extract burst timestamps and sizes
         burst_timestamps = np.array([burst.timestamp for burst in self.network_traffic.bursts])
@@ -56,10 +56,10 @@ class PlotNetworkTraffic:
 
         update_progress(1)
 
-        # Create figure with 4 subplots
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(14, 12), sharex=True)
+        # Create figure with 8 subplots now
+        fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7, ax8) = plt.subplots(8, 1, figsize=(14, 24), sharex=True)  # Changed to 8 subplots and adjusted figsize
         
-        # Main traffic plot
+        # Main traffic plot (ax1)
         ax1.plot(self.network_traffic.traffic_rate_signal['Interval'] * self.network_traffic.interval,
                 self.network_traffic.traffic_rate_signal['Rate'], label='Traffic Rate', alpha=0.7)
         ax1.plot(self.network_traffic.traffic_rate_signal['Interval'] * self.network_traffic.interval,
@@ -71,7 +71,7 @@ class PlotNetworkTraffic:
         ax1.grid(True)
         update_progress(2)
 
-        # Five tuple count per interval
+        # Five tuple count per interval (ax2)
         intervals = self.network_traffic.traffic_rate_signal['Interval'] * self.network_traffic.interval
         ax2.plot(intervals, self.network_traffic.five_tuple_count_per_interval[:len(intervals)], 
                 color='purple', label='Active Flows')
@@ -81,7 +81,7 @@ class PlotNetworkTraffic:
         ax2.grid(True)
         update_progress(3)
 
-        # New five tuples
+        # New five tuples (ax3)
         ax3.plot(intervals, self.network_traffic.new_five_tuples[:len(intervals)], 
                 color='orange', label='New Flows')
         ax3.set_ylabel('New Flow Count')
@@ -89,19 +89,65 @@ class PlotNetworkTraffic:
         ax3.legend()
         ax3.grid(True)
         update_progress(4)
-
-        # SYN packets
+        
+        # Protocol packets (ax4)
+        ax4.plot(intervals, self.network_traffic.number_of_tcp_packets[:len(intervals)], 
+                color='blue', label='TCP Packets')
+        ax4.plot(intervals, self.network_traffic.number_of_udp_packets[:len(intervals)],
+                color='green', label='UDP Packets')
         ax4.plot(intervals, self.network_traffic.number_of_syn_packets[:len(intervals)], 
-                color='blue', label='SYN Packets')
-        ax4.set_xlabel('Time (microseconds)')
-        ax4.set_ylabel('SYN Count')
-        ax4.set_title('Number of SYN Packets per Interval')
+                 color='red', label='SYN Packets')
+        ax4.set_ylabel('Packet Count')
+        ax4.set_title('Transport Layer Packets per Interval')
         ax4.legend()
         ax4.grid(True)
+        update_progress(4)
+
+        # Network layer metrics (ax5)
+        ax5.plot(intervals, self.network_traffic.number_of_ip_addresses[:len(intervals)],
+                color='green', label='Unique IPs')
+        ax5.plot(intervals, self.network_traffic.number_of_ports[:len(intervals)],
+                color='red', label='Unique Ports')
+        # Removed xlabel from ax5 as it's shared
+        ax5.set_ylabel('Count')
+        ax5.set_title('Network Layer Statistics (Unique IPs/Ports)')
+        ax5.legend()
+        ax5.grid(True)
+        update_progress(5) # Update progress step
+
+        # Max IP and Port Packet Count per Interval (ax6 - Updated Subplot)
+        ax6.plot(intervals, self.network_traffic.max_ip_packet_count_per_interval[:len(intervals)],
+                 color='magenta', label='Max Packets per IP')
+        ax6.plot(intervals, self.network_traffic.max_port_packet_count_per_interval[:len(intervals)],
+                 color='cyan', label='Max Packets per Port')
+        ax6.set_ylabel('Packet Count')
+        ax6.set_title('Max Packet Count for Single IP/Port per Interval')
+        ax6.legend()
+        ax6.grid(True)
+        update_progress(6)
+
+        # Max IP Flow Count per Interval (ax7)
+        ax7.plot(intervals, self.network_traffic.max_ip_flow_count_per_interval[:len(intervals)],
+                 color='brown', label='Max Flows per IP')
+        ax7.set_ylabel('Flow Count')
+        ax7.set_title('Max Flow Count for Most Frequent IP per Interval')
+        ax7.legend()
+        ax7.grid(True)
+        update_progress(6)
+
+        # Max Port Flow Count per Interval (ax8 - New Subplot)
+        ax8.plot(intervals, self.network_traffic.max_port_flow_count_per_interval[:len(intervals)],
+                 color='orange', label='Max Flows per Port')
+        ax8.set_xlabel('Time (microseconds)')  # Move xlabel to the last subplot
+        ax8.set_ylabel('Flow Count')
+        ax8.set_title('Max Flow Count for Most Frequent Port per Interval')
+        ax8.legend()
+        ax8.grid(True)
+        update_progress(7)
 
         plt.tight_layout()
         plt.show()
-        update_progress(5)
+        update_progress(6) # Final progress step
 
     @staticmethod
     def plot_cdf(function_outputs, function_name: str, function_atr: str, title: str):

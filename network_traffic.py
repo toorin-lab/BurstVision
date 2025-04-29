@@ -112,6 +112,14 @@ class NetworkTraffic:
         self.five_tuple_count_per_interval = np.zeros(70_000_000, dtype=np.float64)
         self.new_five_tuples = np.zeros(70_000_000, dtype=np.float64)
         self.number_of_syn_packets = np.zeros(70_000_000, dtype=np.float64)
+        self.number_of_tcp_packets = np.zeros(70_000_000, dtype=np.float64)
+        self.number_of_udp_packets = np.zeros(70_000_000, dtype=np.float64)
+        self.number_of_ip_addresses = np.zeros(70_000_000, dtype=np.float64)
+        self.number_of_ports = np.zeros(70_000_000, dtype=np.float64)
+        self.max_port_packet_count_per_interval = np.zeros(70_000_000, dtype=np.float64)
+        self.max_ip_packet_count_per_interval = np.zeros(70_000_000, dtype=np.float64) 
+        self.max_ip_flow_count_per_interval = np.zeros(70_000_000, dtype=np.float64) 
+        self.max_port_flow_count_per_interval = np.zeros(70_000_000, dtype=np.float64) 
         self.five_tuple_lookup = {}
         if reader_mode == 'csv':
             df = dd.read_csv(csv_file_location)
@@ -298,6 +306,12 @@ class NetworkTraffic:
             prev_interval = None
             packet_start_time = None
             current_flow_set = set()
+            current_ip_set = set() # Keep track of unique IPs in the current interval
+            current_port_set = set() # Keep track of unique Ports in the current interval
+            current_ip_packet_counts = {} # Keep track of packet counts per IP in the current interval
+            current_port_packet_counts = {} # Keep track of packet counts per Port in the current interval
+            current_ip_to_flows = {} # Keep track of flows associated with each IP in the current interval
+            current_port_to_flows = {}
             while index < number_of_packets if number_of_packets is not None else True:
                 counter += 1
                 header = f.read(PACKET_HEADER_SIZE)
@@ -326,9 +340,12 @@ class NetworkTraffic:
                             if proto == 6:
                                 if len(transport_header) >= 14:  # Need at least 14 bytes for flags
                                     tcp_flags = transport_header[13]
+                                    self.number_of_tcp_packets[current_interval] += 1
                                     syn_flag = (tcp_flags & 0x02) != 0  # SYN flag is bit 1 (0x02)
                                     if syn_flag:
                                         self.number_of_syn_packets[current_interval] += 1
+                            else:
+                                self.number_of_udp_packets[current_interval] += 1
                             src_port = int.from_bytes(transport_header[:2], 'big')
                             dst_port = int.from_bytes(transport_header[2:4], 'big')
                         else:
@@ -341,14 +358,109 @@ class NetworkTraffic:
                         dst_port = None
                         proto = None
                     
-                    five_tuple = (src_ip, dst_ip, src_port, dst_port, proto)
-                    reverse_five_tuple = (dst_ip, src_ip, dst_port, src_port, proto)
-                    # Initialize flow set if first packet in interval
+                    # Initialize sets and counts if first packet in interval or interval changes
                     if prev_interval is None or current_interval != prev_interval:
                         if prev_interval is not None:  # Only store if not first interval
                             self.five_tuple_count_per_interval[prev_interval] = len(current_flow_set)
+                            self.number_of_ip_addresses[prev_interval] = len(current_ip_set)
+                            self.number_of_ports[prev_interval] = len(current_port_set)
+
+                            most_frequent_ip = None
+                            max_ip_count = 0
+                            # Calculate and store max IP packet count for the previous interval
+                            if current_ip_packet_counts:
+                                most_frequent_ip = max(current_ip_packet_counts, key=current_ip_packet_counts.get)
+                                max_ip_count = current_ip_packet_counts[most_frequent_ip]
+                                self.max_ip_packet_count_per_interval[prev_interval] = max_ip_count
+                                # Store the number of flows for the most frequent IP
+                                self.max_ip_flow_count_per_interval[prev_interval] = len(current_ip_to_flows.get(most_frequent_ip, set()))
+                            else:
+                                self.max_ip_packet_count_per_interval[prev_interval] = 0
+                                self.max_ip_flow_count_per_interval[prev_interval] = 0
+
+                            # Calculate and store max Port packet count for the previous interval
+                            if current_port_packet_counts:
+                                most_frequent_port = max(current_port_packet_counts, key=current_port_packet_counts.get)
+                                max_port_count = current_port_packet_counts[most_frequent_port]
+                                self.max_port_packet_count_per_interval[prev_interval] = max_port_count
+                                # Store the number of flows for the most frequent port
+                                self.max_port_flow_count_per_interval[prev_interval] = len(current_port_to_flows.get(most_frequent_port, set()))
+                            else:
+                                self.max_port_packet_count_per_interval[prev_interval] = 0
+                                self.max_port_flow_count_per_interval[prev_interval] = 0
+
                         current_flow_set = set()
+                        current_ip_set = set()
+                        current_port_set = set()
+                        current_ip_packet_counts = {}
+                        current_port_packet_counts = {}
+                        current_port_to_flows = {}
+                        current_ip_to_flows = {}
                         prev_interval = current_interval
+
+                    # Add IPs to the current interval's set and update counts
+                    if src_ip is not None:
+                        current_ip_set.add(src_ip)
+                        current_ip_packet_counts[src_ip] = current_ip_packet_counts.get(src_ip, 0) + 1
+                        
+                        # Add ports to the current interval's set and update counts
+                        if src_port is not None:
+                            current_port_set.add(src_port)
+                            current_port_packet_counts[src_port] = current_port_packet_counts.get(src_port, 0) + 1
+                        
+                        # Create flow tuple and update flows per IP
+                        if dst_ip is not None and src_port is not None and dst_port is not None and proto is not None:
+                            flow = (src_ip, dst_ip, src_port, dst_port, proto)
+                            reverse_flow = (dst_ip, src_ip, dst_port, src_port, proto)
+                            # Update flows for source IP
+                            if src_ip not in current_ip_to_flows:
+                                current_ip_to_flows[src_ip] = set()
+                            if reverse_flow not in current_ip_to_flows[src_ip]:
+                                current_ip_to_flows[src_ip].add(flow)
+                            
+                            # src port
+                            if src_port not in current_port_to_flows:
+                                current_port_to_flows[src_port] = set()
+                            if reverse_flow not in current_port_to_flows[src_port]:
+                                current_port_to_flows[src_port].add(flow)
+
+                    # Also track destination IP and port
+                    if dst_ip is not None:
+                        current_ip_set.add(dst_ip)
+                        current_ip_packet_counts[dst_ip] = current_ip_packet_counts.get(dst_ip, 0) + 1
+                        
+                        # Add destination port to counts
+                        if dst_port is not None:
+                            current_port_set.add(dst_port)
+                            current_port_packet_counts[dst_port] = current_port_packet_counts.get(dst_port, 0) + 1
+                            
+                        # Update flows for destination IP
+                        if dst_ip is not None and src_port is not None and dst_port is not None and proto is not None:
+                            flow = (src_ip, dst_ip, src_port, dst_port, proto)
+                            reverse_flow = (dst_ip, src_ip, dst_port, src_port, proto)
+                            if dst_ip not in current_ip_to_flows:
+                                current_ip_to_flows[dst_ip] = set()
+                            if reverse_flow not in current_ip_to_flows[dst_ip]:
+                                current_ip_to_flows[dst_ip].add(flow)
+
+                            # dst port
+                            if dst_port not in current_port_to_flows:
+                                current_port_to_flows[dst_port] = set()
+                            if reverse_flow not in current_port_to_flows[dst_port]:
+                                current_port_to_flows[dst_port].add(flow)
+                                
+                    if dst_ip is not None:
+                        current_ip_set.add(dst_ip)
+                        current_ip_packet_counts[dst_ip] = current_ip_packet_counts.get(dst_ip, 0) + 1
+                    
+                    # Add Ports to the current interval's set
+                    if src_port is not None:
+                        current_port_set.add(src_port)
+                    if dst_port is not None:
+                        current_port_set.add(dst_port)
+
+                    five_tuple = (src_ip, dst_ip, src_port, dst_port, proto)
+                    reverse_five_tuple = (dst_ip, src_ip, dst_port, src_port, proto)
                     
                     # Only add valid five tuples (skip None values)
                     if None not in (src_ip, dst_ip, src_port, dst_port, proto):
@@ -358,7 +470,6 @@ class NetworkTraffic:
                             self.new_five_tuples[current_interval] += 1
                             self.five_tuple_lookup[five_tuple] = index
                             self.five_tuple_lookup[reverse_five_tuple] = index
-                        self.five_tuple_lookup
 
                     index += 1
                     timestamps.append(timestamp)
@@ -372,6 +483,29 @@ class NetworkTraffic:
                     elapsed = time.time() - start_time
                     print(f"\rReading packets: {progress:.0f}% ({elapsed:.2f}s)", end='', flush=True)
         
+        # Store counts for the very last interval after the loop finishes
+        if prev_interval is not None:
+            self.five_tuple_count_per_interval[prev_interval] = len(current_flow_set)
+            self.number_of_ip_addresses[prev_interval] = len(current_ip_set)
+            self.number_of_ports[prev_interval] = len(current_port_set) # Store Port count for the last interval
+            
+            most_frequent_ip = None
+            max_ip_count = 0
+            # Calculate and store max IP packet count for the last interval
+            if current_ip_packet_counts:
+                most_frequent_ip = max(current_ip_packet_counts, key=current_ip_packet_counts.get)
+                max_ip_count = current_ip_packet_counts[most_frequent_ip]
+                self.max_ip_packet_count_per_interval[prev_interval] = max_ip_count
+            else:
+                 self.max_ip_packet_count_per_interval[prev_interval] = 0
+            # Calculate and store max Port packet count for the last interval
+            if current_port_packet_counts:
+                max_port_count = max(current_port_packet_counts.values())
+                self.max_port_packet_count_per_interval[prev_interval] = max_port_count
+            else:
+                 self.max_port_packet_count_per_interval[prev_interval] = 0
+
+
         if self.print_status:
             print(f"\nProcessed {packet_count:,} packets")
         
