@@ -19,7 +19,10 @@ def write_to_csv(network_traffic, output_file, batch_size=10000):
     
     # Write header first
     columns = ['traffic_rate', 'num_packets', 'avg_packet_size', 'avg_traffic_rate',
-               'avg_duration_between_packets','flow_count', 'new_flow_count','syn_count' ,'timestamp', 'is_burst']
+               'avg_duration_between_packets', 'flow_count', 'new_flow_count', 'syn_count',
+               'tcp_count', 'udp_count', 'unique_ip_count', 'unique_port_count',
+               'max_packets_per_ip', 'max_packets_per_port', 'max_flows_per_ip',
+               'max_flows_per_port', 'timestamp', 'is_burst']
     
     with open(output_file, 'w') as f:
         # Write header
@@ -47,8 +50,16 @@ def write_to_csv(network_traffic, output_file, batch_size=10000):
                 'avg_traffic_rate': avg_signal[idx],
                 'avg_duration_between_packets': row['avg_duration'] if row['Count'] > 1 else 0,
                 'flow_count': flow_count,
-                'new_flow_count':new_five_tuples_count,
+                'new_flow_count': new_five_tuples_count,
                 'syn_count': count_of_syn,
+                'tcp_count': network_traffic.number_of_tcp_packets[interval_idx],
+                'udp_count': network_traffic.number_of_udp_packets[interval_idx],
+                'unique_ip_count': network_traffic.number_of_ip_addresses[interval_idx],
+                'unique_port_count': network_traffic.number_of_ports[interval_idx],
+                'max_packets_per_ip': network_traffic.max_ip_packet_count_per_interval[interval_idx],
+                'max_packets_per_port': network_traffic.max_port_packet_count_per_interval[interval_idx],
+                'max_flows_per_ip': network_traffic.max_ip_flow_count_per_interval[interval_idx],
+                'max_flows_per_port': network_traffic.max_port_flow_count_per_interval[interval_idx],
                 'timestamp': row['Timestamp'],
                 'is_burst': burst_intervals.get(row['Interval'], 0),
             }

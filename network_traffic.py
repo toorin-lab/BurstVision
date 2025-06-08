@@ -266,7 +266,7 @@ class NetworkTraffic:
                 else:
                     self.index[key] = [packet]
 
-    def _read_packets_with_progress(self, packets=None, start_from=16_000_000, number_of_packets=2_000_000):
+    def _read_packets_with_progress(self, packets=None, start_from=1, number_of_packets=None):
         """Read PCAP file efficiently in binary mode"""
         if packets is not None:
             return self._process_provided_packets(packets)
